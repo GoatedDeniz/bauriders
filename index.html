@@ -203,7 +203,11 @@
   .btn-small:hover { background: rgb(var(--rgb-orange)); color: #0B0B0D; }
 
   /* HERO CAROUSEL */
-  .hero-carousel { position: relative; min-height: 560px; overflow: hidden; }
+  .hero-carousel {
+    position: relative; min-height: 560px; overflow: hidden;
+    /* Allow vertical scroll to pass through; horizontal swipe is handled by JS */
+    touch-action: pan-y;
+  }
   @media (min-width: 768px)  { .hero-carousel { min-height: 640px; } }
   @media (min-width: 1024px) { .hero-carousel { min-height: 700px; } }
   .hero-slides-track { position: absolute; inset: 0; }
@@ -242,15 +246,9 @@
   }
   .hero-arrow.prev { left: 16px; }
   .hero-arrow.next { right: 16px; }
-  /* Mobile: move arrows out of the text path, down to flank the dots */
+  /* Mobile: hide arrows entirely — users swipe instead */
   @media (max-width: 767px) {
-    .hero-arrow {
-      top: auto; transform: none;
-      bottom: 16px; width: 38px; height: 38px;
-      background: rgb(var(--rgb-coal) / 0.75);
-    }
-    .hero-arrow.prev { left: 12px; }
-    .hero-arrow.next { right: 12px; }
+    .hero-arrow { display: none; }
   }
   @media (min-width: 768px) {
     .hero-arrow { width: 56px; height: 56px; }
@@ -1537,6 +1535,29 @@ class Carousel {
     if (this.nextBtn) this.nextBtn.addEventListener('click', () => this.next(true));
     this.dots.forEach((d, i) => d.addEventListener('click', () => this.goto(i, true)));
 
+    /* Touch swipe — left swipe = next, right swipe = prev.
+       Only counts as a swipe if it's primarily horizontal and exceeds 40px. */
+    let _sx = 0, _sy = 0, _st = 0, _swiping = false;
+    root.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) { _swiping = false; return; }
+      _sx = e.touches[0].clientX;
+      _sy = e.touches[0].clientY;
+      _st = Date.now();
+      _swiping = true;
+    }, { passive: true });
+    root.addEventListener('touchend', (e) => {
+      if (!_swiping) return;
+      _swiping = false;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - _sx;
+      const dy = t.clientY - _sy;
+      const dt = Date.now() - _st;
+      if (dt < 600 && Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        if (dx < 0) this.next(true); else this.prev(true);
+      }
+    }, { passive: true });
+    root.addEventListener('touchcancel', () => { _swiping = false; }, { passive: true });
+
     if (this.autoplay) {
       root.addEventListener('mouseenter', () => this.pause());
       root.addEventListener('mouseleave', () => this.play());
@@ -1826,7 +1847,7 @@ function renderHeroSlides() {
               <p class="mt-5 max-w-[540px] text-cream/85 text-base md:text-lg leading-relaxed"><span data-en="${esc(s.desc_en)}" data-tr="${esc(s.desc_tr)}">${esc(s.desc_en)}</span></p>
               <div class="mt-7"><a href="#events" onclick="showView('events'); return false;" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a></div>
             </div>
-            <div class="lg:col-span-5 h-full min-h-[220px] hidden lg:block">${photoSlot}</div>
+            <div class="lg:col-span-5 h-[200px] sm:h-[260px] lg:h-full lg:min-h-[220px]">${photoSlot}</div>
           </div>
         </div>
       </div>`;
