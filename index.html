@@ -32,6 +32,14 @@
 <meta name="color-scheme" content="dark light" />
 <meta name="theme-color" content="#0F0F10" media="(prefers-color-scheme: dark)" />
 <meta name="theme-color" content="#F4EDE0" media="(prefers-color-scheme: light)" />
+<script>
+  /* Apply saved theme preference before first paint to avoid a flash. */
+  try {
+    var _t = localStorage.getItem('_bauTheme');
+    if (_t === 'dark')       document.documentElement.classList.add('always-dark');
+    else if (_t === 'light') document.documentElement.classList.add('always-light');
+  } catch (e) {}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -444,6 +452,31 @@
   }
   .lang-btn.active { color: rgb(var(--rgb-cream)); }
   .lang-sep { color: rgb(var(--rgb-line)); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+
+  /* Theme toggle — sun/moon icon swap based on the active theme */
+  .theme-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 34px; height: 34px;
+    background: transparent;
+    border: 1px solid rgb(var(--rgb-line));
+    color: rgb(var(--rgb-steel));
+    transition: color .2s ease, border-color .2s ease;
+    cursor: pointer;
+  }
+  .theme-btn:hover {
+    color: rgb(var(--rgb-orange));
+    border-color: rgb(var(--rgb-orange));
+  }
+  .theme-btn svg { width: 16px; height: 16px; }
+  .theme-icon-sun, .theme-icon-moon { display: none; }
+  /* No explicit choice yet → follow system preference */
+  @media (prefers-color-scheme: dark)  { .theme-icon-sun  { display: block; } }
+  @media (prefers-color-scheme: light) { .theme-icon-moon { display: block; } }
+  /* Explicit override classes win over the system preference */
+  html.always-dark  .theme-icon-sun  { display: block; }
+  html.always-dark  .theme-icon-moon { display: none; }
+  html.always-light .theme-icon-sun  { display: none; }
+  html.always-light .theme-icon-moon { display: block; }
 
   .nav-link {
     font-family: 'Barlow Condensed', sans-serif;
@@ -1128,7 +1161,11 @@
       <a href="#tuesdays" class="nav-link"                                                             data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
       <a href="#news"   class="nav-link"                                                               data-en="News"     data-tr="Haberler">News</a>
     </nav>
-    <div class="flex items-center gap-4">
+    <div class="flex items-center gap-3 md:gap-4">
+      <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
+        <svg class="theme-icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </button>
       <div class="hidden sm:flex items-center">
         <button class="lang-btn lang-en active" onclick="setLang('en')">EN</button>
         <span class="lang-sep">/</span>
@@ -1153,10 +1190,16 @@
   <a href="#tuesdays" class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
   <a href="#news"     class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="News"     data-tr="Haberler">News</a>
   <a href="#join"     class="py-4 display text-[28px] text-orange" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
-  <div class="mt-auto flex items-center gap-2">
-    <button class="lang-btn lang-en active" onclick="setLang('en')">EN</button>
-    <span class="lang-sep">/</span>
-    <button class="lang-btn lang-tr" onclick="setLang('tr')">TR</button>
+  <div class="mt-auto flex items-center justify-between gap-2">
+    <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
+      <svg class="theme-icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+    </button>
+    <div class="flex items-center gap-2">
+      <button class="lang-btn lang-en active" onclick="setLang('en')">EN</button>
+      <span class="lang-sep">/</span>
+      <button class="lang-btn lang-tr" onclick="setLang('tr')">TR</button>
+    </div>
   </div>
 </div>
 
@@ -1536,6 +1579,33 @@ class Carousel {
     /* Track is the parent element of the slides — translated horizontally to slide */
     this.track    = this.slides[0].parentElement;
 
+    /* Infinite scrolling: clone last slide before the first, and first slide
+       after the last. When wrapping, the track animates one step into the
+       relevant clone (so it reads as a normal next/prev), then silently
+       snaps back to the real slide once the transition completes. */
+    this._infinite = false;
+    if (this.slides.length > 1 && this.track) {
+      const firstClone = this.slides[0].cloneNode(true);
+      const lastClone  = this.slides[this.slides.length - 1].cloneNode(true);
+      [firstClone, lastClone].forEach(c => {
+        c.removeAttribute('data-slide');
+        c.classList.remove('active');
+        c.setAttribute('aria-hidden', 'true');
+        c.dataset.clone = '1';
+      });
+      this.track.insertBefore(lastClone, this.track.firstChild);
+      this.track.appendChild(firstClone);
+      /* Start at position 1 (real first slide) without animation */
+      this.track.style.transition = 'none';
+      this.track.style.transform = 'translateX(-100%)';
+      void this.track.offsetWidth;
+      this.track.style.transition = '';
+      this._infinite = true;
+    }
+
+    this._snapTo = null;
+    this._snapTimer = null;
+
     this.dots     = root.querySelectorAll('[data-dot]');
     this.prevBtn  = root.querySelector('[data-prev]');
     this.nextBtn  = root.querySelector('[data-next]');
@@ -1587,30 +1657,36 @@ class Carousel {
     const oldIdx = this.current;
     const newIdx = (i + N) % N;
 
-    /* Detect a wrap (last → first or first → last) — those would otherwise
-       scroll the track all the way back through every slide. We snap with a
-       quick fade instead so it still reads as "the next slide". */
-    const isWrap = N > 2 && Math.abs(newIdx - oldIdx) === N - 1;
+    /* If a wrap-snap from the previous transition is still pending, finalize
+       it immediately so the new transition starts from the correct position. */
+    this._completeAnyPendingSnap();
 
     this.current = newIdx;
     this.slides.forEach((s, idx) => s.classList.toggle('active', idx === newIdx));
     this.dots.forEach((d, idx) => d.classList.toggle('active', idx === newIdx));
 
     if (this.track) {
-      if (isWrap) {
-        /* Fade-snap-fade for wrap-around */
-        this.track.style.transition = 'opacity .2s ease';
-        this.track.style.opacity = '0';
-        setTimeout(() => {
-          this.track.style.transition = 'none';
-          this.track.style.transform = `translateX(-${newIdx * 100}%)`;
-          /* Force reflow so the next style change is its own transition */
-          void this.track.offsetWidth;
-          this.track.style.transition = '';
-          this.track.style.opacity = '1';
-        }, 200);
+      if (this._infinite) {
+        const isWrapForward  = oldIdx === N - 1 && newIdx === 0;
+        const isWrapBackward = oldIdx === 0 && newIdx === N - 1;
+
+        if (isWrapForward) {
+          /* Animate one step further into the trailing clone of slide 0,
+             then silently snap to the real slide 0 (position 1). */
+          this.track.style.transform = `translateX(-${(N + 1) * 100}%)`;
+          this._snapTo = 1;
+          this._scheduleSnap();
+        } else if (isWrapBackward) {
+          /* Animate one step into the leading clone of the last slide
+             (position 0), then silently snap to the real last slide. */
+          this.track.style.transform = `translateX(0%)`;
+          this._snapTo = N;
+          this._scheduleSnap();
+        } else {
+          /* Normal: real slides are at positions 1..N (clone of last is 0). */
+          this.track.style.transform = `translateX(-${(newIdx + 1) * 100}%)`;
+        }
       } else {
-        this.track.style.opacity = '1';
         this.track.style.transform = `translateX(-${newIdx * 100}%)`;
       }
     }
@@ -1626,6 +1702,22 @@ class Carousel {
       if (this.autoplay && this.timer) this.root.classList.add('playing');
     }
     if (userTriggered && this.autoplay) { this.pause(); this.play(); }
+  }
+  /* Schedule the silent jump from the wrap-clone to the matching real slide.
+     The timer fires just after the slide animation has visually completed. */
+  _scheduleSnap() {
+    if (this._snapTimer) clearTimeout(this._snapTimer);
+    this._snapTimer = setTimeout(() => this._completeAnyPendingSnap(), 580);
+  }
+  _completeAnyPendingSnap() {
+    if (this._snapTimer) { clearTimeout(this._snapTimer); this._snapTimer = null; }
+    if (this._snapTo != null && this.track) {
+      this.track.style.transition = 'none';
+      this.track.style.transform = `translateX(-${this._snapTo * 100}%)`;
+      void this.track.offsetWidth;
+      this.track.style.transition = '';
+      this._snapTo = null;
+    }
   }
   next(user) { this.goto(this.current + 1, user); }
   prev(user) { this.goto(this.current - 1, user); }
@@ -2089,6 +2181,23 @@ function toggleMobile() {
   const nav = document.getElementById('mobileNav');
   nav.classList.toggle('open');
   document.body.style.overflow = nav.classList.contains('open') ? 'hidden' : '';
+}
+
+/* Toggle between dark and light. The first click locks in an explicit choice
+   (saved in localStorage); we apply it via the same `always-dark` /
+   `always-light` classes the design already uses. */
+function toggleTheme() {
+  const html = document.documentElement;
+  const explicitDark  = html.classList.contains('always-dark');
+  const explicitLight = html.classList.contains('always-light');
+  const isDark = explicitDark ||
+    (!explicitLight && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  const next = isDark ? 'light' : 'dark';
+  html.classList.remove('always-dark', 'always-light');
+  html.classList.add('always-' + next);
+  try { localStorage.setItem('_bauTheme', next); } catch (e) {}
+  /* Re-pick the right black/white logo variant for the new theme. */
+  if (typeof _bauApplyLogos === 'function') _bauApplyLogos();
 }
 
 
