@@ -964,6 +964,94 @@
       animation-delay: 0s !important;
     }
   }
+
+  /* ============================================================ */
+  /*  EASTER EGG — top-down motorcycle revs and rides you to top  */
+  /*  Triggered when the user tries to scroll past the bottom 3x. */
+  /* ============================================================ */
+  #moto-easteregg {
+    position: fixed; left: 50%; bottom: 0;
+    width: 64px; height: 160px;
+    z-index: 9990; pointer-events: none;
+    transform: translate(-50%, 240px);
+    filter: drop-shadow(0 8px 18px rgba(0,0,0,0.4));
+  }
+  @media (min-width: 768px) {
+    #moto-easteregg { width: 88px; height: 220px; }
+  }
+  /* Rides up onto the screen (rev pose) */
+  #moto-easteregg.appearing {
+    transform: translate(-50%, -36px);
+    transition: transform .55s cubic-bezier(.2,.8,.3,1);
+  }
+  /* Then accelerates off the top of the screen */
+  #moto-easteregg.driving {
+    transform: translate(-50%, calc(-100vh - 240px));
+    transition: transform 1.5s cubic-bezier(.42,0,.45,1);
+  }
+
+  #moto-easteregg .moto-shake {
+    width: 100%; height: 100%; display: block;
+    transform-origin: 50% 75%;
+  }
+  #moto-easteregg.revving .moto-shake {
+    animation: motoShake 0.11s linear infinite;
+  }
+  #moto-easteregg.driving .moto-shake {
+    animation: motoShake 0.07s linear infinite;
+  }
+  @keyframes motoShake {
+    0%, 100% { transform: rotate(-1.4deg) translateX(0.4px); }
+    50%      { transform: rotate( 1.4deg) translateX(-0.4px); }
+  }
+
+  /* Headlight glow gets brighter during rev/drive */
+  #moto-easteregg .hl-glow {
+    opacity: 0.5; transition: opacity .25s ease;
+    filter: blur(2px);
+  }
+  #moto-easteregg.revving .hl-glow,
+  #moto-easteregg.driving .hl-glow { opacity: 1; }
+
+  /* Speed streaks down each side while driving */
+  #moto-easteregg::before,
+  #moto-easteregg::after {
+    content: ''; position: absolute; bottom: 0;
+    width: 3px; height: 220px;
+    background: linear-gradient(to top,
+      rgba(255,255,255,0.55) 0%, transparent 90%);
+    opacity: 0; pointer-events: none;
+    border-radius: 2px;
+  }
+  #moto-easteregg::before { left: 6px; }
+  #moto-easteregg::after  { right: 6px; }
+  #moto-easteregg.driving::before,
+  #moto-easteregg.driving::after {
+    opacity: 0.85;
+    transition: opacity .25s ease .15s;
+  }
+
+  /* Exhaust puff that appears during rev */
+  #moto-easteregg .exhaust-puff {
+    position: absolute; left: 50%; bottom: -4px;
+    width: 36px; height: 36px;
+    transform: translate(-50%, 0) scale(0.4);
+    background: radial-gradient(circle, rgba(180,180,180,0.55), transparent 65%);
+    opacity: 0;
+    border-radius: 50%;
+  }
+  #moto-easteregg.revving .exhaust-puff {
+    animation: motoExhaust 0.55s ease-out infinite;
+  }
+  @keyframes motoExhaust {
+    0%   { opacity: 0;    transform: translate(-50%, 4px) scale(0.4); }
+    35%  { opacity: 0.85; }
+    100% { opacity: 0;    transform: translate(-50%, 36px) scale(1.4); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #moto-easteregg { display: none; }
+  }
 </style>
 </head>
 <body class="relative">
@@ -2219,6 +2307,144 @@ function toggleTheme() {
   /* Re-pick the right black/white logo variant for the new theme. */
   if (typeof _bauApplyLogos === 'function') _bauApplyLogos();
 }
+
+/* ================================================================
+ *  EASTER EGG — Try to scroll past the bottom three times in a row
+ *  and a top-down motorcycle revs in, drives you back to the top.
+ *  Skipped if the user prefers reduced motion.
+ * ================================================================ */
+(function motoEasterEgg() {
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  let attempts = 0;
+  let lastAttempt = 0;
+  let resetTimer = null;
+  let active = false;
+
+  function reset() {
+    attempts = 0;
+    if (resetTimer) { clearTimeout(resetTimer); resetTimer = null; }
+  }
+  function nudge() {
+    if (active) return;
+    const now = Date.now();
+    if (now - lastAttempt < 350) return; /* dedupe rapid trackpad ticks */
+    lastAttempt = now;
+    attempts++;
+    if (resetTimer) clearTimeout(resetTimer);
+    resetTimer = setTimeout(reset, 2500);
+    if (attempts >= 3) trigger();
+  }
+  function isAtBottom() {
+    return window.scrollY + window.innerHeight >=
+           document.documentElement.scrollHeight - 2;
+  }
+
+  /* Desktop wheel — count downward wheel events while pinned at the bottom */
+  window.addEventListener('wheel', (e) => {
+    if (active) return;
+    if (e.deltaY > 0 && isAtBottom()) nudge();
+    else if (e.deltaY < -2)           reset();
+  }, { passive: true });
+
+  /* Mobile touch — count upward swipes (= scroll-down attempts) at the bottom
+     that didn't actually move the page */
+  let tStartY = 0, tStartScroll = 0;
+  window.addEventListener('touchstart', (e) => {
+    if (active || e.touches.length !== 1) return;
+    tStartY = e.touches[0].clientY;
+    tStartScroll = window.scrollY;
+  }, { passive: true });
+  window.addEventListener('touchend', (e) => {
+    if (active) return;
+    const dy = tStartY - e.changedTouches[0].clientY;
+    const scrollDelta = window.scrollY - tStartScroll;
+    if (dy > 30 && isAtBottom() && scrollDelta < 5) nudge();
+    else if (dy < -30) reset();
+  }, { passive: true });
+
+  function smoothScrollToTop(duration) {
+    const startY = window.scrollY;
+    const startTime = performance.now();
+    function step(now) {
+      const t = Math.min(1, (now - startTime) / duration);
+      const ease = 1 - Math.pow(1 - t, 3); /* easeOutCubic */
+      window.scrollTo(0, startY * (1 - ease));
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function trigger() {
+    active = true;
+    reset();
+
+    const moto = document.createElement('div');
+    moto.id = 'moto-easteregg';
+    moto.setAttribute('aria-hidden', 'true');
+    moto.innerHTML = `
+      <div class="moto-shake">
+        <svg viewBox="0 0 80 200" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
+          <!-- Headlight projection glow (sits behind the bike, brightens on rev) -->
+          <ellipse class="hl-glow" cx="40" cy="-12" rx="56" ry="42" fill="rgba(255,230,160,0.55)"/>
+          <!-- Front wheel -->
+          <ellipse cx="40" cy="26" rx="10" ry="18" fill="#181818"/>
+          <ellipse cx="40" cy="26" rx="4"  ry="10" fill="#3a3a3a"/>
+          <!-- Headlight -->
+          <circle  cx="40" cy="9"  r="5"  fill="#fff5c8" stroke="#888" stroke-width="0.5"/>
+          <!-- Handlebars -->
+          <rect x="12" y="42" width="56" height="4" rx="2" fill="#555"/>
+          <circle cx="12" cy="44" r="3.5" fill="#1a1a1a"/>
+          <circle cx="68" cy="44" r="3.5" fill="#1a1a1a"/>
+          <!-- Fuel tank (theme red) -->
+          <path d="M 28 48 L 52 48 L 54 80 L 26 80 Z" fill="rgb(var(--rgb-red))"/>
+          <path d="M 32 51 L 38 51 L 38 76 L 32 76 Z" fill="rgba(255,255,255,0.18)"/>
+          <!-- Engine block with cooling fins -->
+          <rect x="23" y="82" width="34" height="24" rx="2" fill="#1a1a1a"/>
+          <line x1="25" y1="86"  x2="55" y2="86"  stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="25" y1="90"  x2="55" y2="90"  stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="25" y1="94"  x2="55" y2="94"  stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="25" y1="98"  x2="55" y2="98"  stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="25" y1="102" x2="55" y2="102" stroke="#3d3d3d" stroke-width="1.4"/>
+          <!-- Seat -->
+          <path d="M 31 108 L 49 108 L 51 138 L 29 138 Z" fill="#0a0a0a"/>
+          <!-- Rear fender -->
+          <ellipse cx="40" cy="142" rx="15" ry="3" fill="#222"/>
+          <!-- Rear wheel -->
+          <ellipse cx="40" cy="164" rx="12" ry="22" fill="#181818"/>
+          <ellipse cx="40" cy="164" rx="5"  ry="13" fill="#3a3a3a"/>
+          <!-- Exhaust pipes -->
+          <rect x="19" y="150" width="4" height="40" rx="2" fill="#909090"/>
+          <rect x="57" y="150" width="4" height="40" rx="2" fill="#909090"/>
+          <ellipse cx="21" cy="188" rx="2.5" ry="1.5" fill="#1a1a1a"/>
+          <ellipse cx="59" cy="188" rx="2.5" ry="1.5" fill="#1a1a1a"/>
+        </svg>
+        <span class="exhaust-puff"></span>
+      </div>
+    `;
+    document.body.appendChild(moto);
+
+    /* Force a paint so the initial off-screen transform "sticks" before we
+       transition into the appearing state. */
+    void moto.offsetHeight;
+
+    /* Phase 1 — rev in place */
+    moto.classList.add('appearing', 'revving');
+
+    /* Phase 2 — drive up + scroll to top, synced */
+    setTimeout(() => {
+      moto.classList.remove('revving');
+      moto.classList.add('driving');
+      smoothScrollToTop(1500);
+    }, 1100);
+
+    /* Cleanup once the bike has driven off the top */
+    setTimeout(() => {
+      moto.remove();
+      active = false;
+    }, 1100 + 1700);
+  }
+})();
 
 
 /* ================================================================
