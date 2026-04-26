@@ -40,6 +40,15 @@
     else if (_t === 'light') document.documentElement.classList.add('always-light');
   } catch (e) {}
 </script>
+<!-- Three.js ESM (used by the helmet showpiece module script at the foot of body) -->
+<script type="importmap">
+{
+  "imports": {
+    "three":          "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/":  "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;500;600;700;800&family=Barlow:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -944,6 +953,186 @@
       animation-delay: 0s !important;
     }
   }
+
+  /* ============================================================ */
+  /*  ATMOSPHERIC BASE — slow-drifting warm gradients (light)     */
+  /* ------------------------------------------------------------ */
+  /*  Three layered effects that quietly sit BEHIND every section */
+  /*  to give the page a sense of depth instead of a flat fill:   */
+  /*    • Two warm radial pools that slowly drift across the body */
+  /*    • The fixed paper-grain `body::before` already in place   */
+  /*    • A dusty orange glow lit behind the hero carousel        */
+  /*  Dark mode keeps its existing mood — these vars vanish.      */
+  /* ============================================================ */
+  :root {
+    --atm-warm-1: rgba(227,  91, 30, 0);
+    --atm-warm-2: rgba(255, 200, 150, 0);
+    --atm-hero-glow: rgba(227, 91, 30, 0.10);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --atm-warm-1: rgba(227,  91, 30, 0.07);
+      --atm-warm-2: rgba(255, 200, 150, 0.18);
+      --atm-hero-glow: rgba(227, 91, 30, 0.18);
+    }
+  }
+  .always-light {
+    --atm-warm-1: rgba(227,  91, 30, 0.07);
+    --atm-warm-2: rgba(255, 200, 150, 0.18);
+    --atm-hero-glow: rgba(227, 91, 30, 0.18);
+  }
+  .always-dark {
+    --atm-warm-1: rgba(227,  91, 30, 0);
+    --atm-warm-2: rgba(255, 200, 150, 0);
+    --atm-hero-glow: rgba(227, 91, 30, 0.10);
+  }
+  body {
+    background:
+      radial-gradient(80vw 65vh at 18% 12%, var(--atm-warm-1) 0%, transparent 60%),
+      radial-gradient(70vw 55vh at 82% 78%, var(--atm-warm-2) 0%, transparent 60%),
+      rgb(var(--rgb-coal));
+    background-attachment: fixed, fixed, fixed;
+    background-size: 200% 200%, 200% 200%, auto;
+    animation: atmDrift 40s ease-in-out infinite alternate;
+  }
+  @keyframes atmDrift {
+    0%   { background-position:   0%   0%, 100% 100%, 0 0; }
+    100% { background-position: 100%  60%,   0%  40%, 0 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body { animation: none; }
+  }
+  /* Dusty orange glow behind the hero — pseudo so it scrolls with hero */
+  #hero-carousel::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background: radial-gradient(60vw 55vh at 28% 55%, var(--atm-hero-glow) 0%, transparent 65%);
+  }
+
+  /* ============================================================ */
+  /*  TOPOGRAPHIC CONTOUR PATTERN                                 */
+  /* ------------------------------------------------------------ */
+  /*  A reusable .topo-bg class — applies a fixed SVG of organic  */
+  /*  closed Béziers (elevation lines) at 4-6% alpha, in the      */
+  /*  brand orange. We pick which sections get contours vs the    */
+  /*  existing 48px .grid-bg so we never double-pattern a region. */
+  /*  The SVG is encoded once via data URI; the browser caches    */
+  /*  it once for every section that uses the class.              */
+  /* ============================================================ */
+  .topo-bg { position: relative; }
+  .topo-bg > * { position: relative; z-index: 1; }
+  .topo-bg::before {
+    content: '';
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1200 800' preserveAspectRatio='xMidYMid slice'><g fill='none' stroke='%23E35B1E' stroke-width='1.1'><path d='M 80 380 C 180 240, 360 200, 540 280 S 920 360, 1080 240 L 1200 280'/><path d='M 100 420 C 220 300, 380 270, 560 340 S 900 410, 1080 320'/><path d='M 130 470 C 260 360, 410 340, 590 400 S 880 460, 1080 400'/><path d='M 160 520 C 290 430, 440 410, 620 460 S 860 510, 1080 480'/><path d='M 200 580 C 320 510, 470 490, 650 530 S 840 570, 1080 560'/><path d='M 240 640 C 360 590, 510 570, 680 600 S 820 630, 1080 640'/></g><g fill='none' stroke='%23E35B1E' stroke-width='0.9'><path d='M 0 100 C 120 50, 220 70, 320 130 S 460 220, 600 200 S 820 130, 950 170 S 1100 230, 1200 200'/><path d='M 0 150 C 130 100, 240 120, 340 170 S 470 250, 610 230 S 820 170, 950 200 S 1100 250, 1200 230'/><path d='M 0 200 C 140 160, 260 180, 360 220 S 480 290, 620 270 S 820 220, 950 240 S 1100 280, 1200 260'/></g><g fill='none' stroke='%23E35B1E' stroke-width='0.8'><path d='M 60 720 C 200 660, 360 670, 520 700 S 800 740, 980 720 S 1140 700, 1200 720'/><path d='M 80 760 C 220 720, 380 720, 540 740 S 800 770, 980 760 S 1140 750, 1200 760'/></g></svg>");
+    background-size: 1400px 900px;
+    background-repeat: repeat;
+    background-attachment: fixed;
+    opacity: 0.04;
+  }
+  @media (prefers-color-scheme: light) {
+    .topo-bg::before { opacity: 0.06; }
+  }
+  .always-light .topo-bg::before { opacity: 0.06; }
+  .always-dark  .topo-bg::before { opacity: 0.04; }
+
+  /* ============================================================ */
+  /*  TILT-ON-HOVER for cards                                      */
+  /* ------------------------------------------------------------ */
+  /*  JS reads the cursor position relative to the card center    */
+  /*  and writes (a) the tilt transform inline, and (b) two CSS   */
+  /*  vars (--tilt-mx, --tilt-my) for a faint cursor-tracking     */
+  /*  radial highlight rendered via ::after. No transition        */
+  /*  during mousemove for instant follow; eased return on leave. */
+  /*  Disabled on touch devices and prefers-reduced-motion.       */
+  /* ============================================================ */
+  .card, .up-event {
+    --tilt-mx: 50%;
+    --tilt-my: 50%;
+    --tilt-glow: 0;
+  }
+  .up-event { position: relative; overflow: hidden; }
+  .card::after, .up-event::after {
+    content: '';
+    position: absolute; inset: 0;
+    pointer-events: none;
+    background: radial-gradient(280px circle at var(--tilt-mx) var(--tilt-my),
+                rgba(255, 107, 44, 0.22) 0%, transparent 55%);
+    opacity: var(--tilt-glow);
+    transition: opacity .35s ease;
+    z-index: 3;
+  }
+  @media (hover: none), (prefers-reduced-motion: reduce) {
+    .card::after, .up-event::after { display: none; }
+  }
+
+  /* ============================================================ */
+  /*  CURSOR GLOW TRAIL                                            */
+  /* ------------------------------------------------------------ */
+  /*  A 400px orange radial that lerps toward the cursor (~0.15/  */
+  /*  frame) — never snapped. Sits at z-100 so the intro overlay  */
+  /*  (z-9999) hides it; after the intro is removed it appears on */
+  /*  the first mousemove. We swap blend modes per theme — screen */
+  /*  reads as a warm halo on dark, multiply as a faint tint on   */
+  /*  light. Killed entirely on touch + reduced motion.           */
+  /* ============================================================ */
+  #cursor-glow {
+    position: fixed; top: 0; left: 0;
+    width: 400px; height: 400px;
+    pointer-events: none;
+    background: radial-gradient(circle, rgb(var(--rgb-orange) / 0.18) 0%, transparent 60%);
+    transform: translate3d(-1000px, -1000px, 0);
+    z-index: 100;
+    mix-blend-mode: screen;
+    opacity: 0;
+    transition: opacity .35s ease;
+    will-change: transform, opacity;
+  }
+  @media (prefers-color-scheme: light) {
+    #cursor-glow {
+      background: radial-gradient(circle, rgb(var(--rgb-orange) / 0.22) 0%, transparent 60%);
+      mix-blend-mode: multiply;
+    }
+  }
+  .always-light #cursor-glow {
+    background: radial-gradient(circle, rgb(var(--rgb-orange) / 0.22) 0%, transparent 60%);
+    mix-blend-mode: multiply;
+  }
+  .always-dark #cursor-glow {
+    background: radial-gradient(circle, rgb(var(--rgb-orange) / 0.18) 0%, transparent 60%);
+    mix-blend-mode: screen;
+  }
+  #cursor-glow.on { opacity: 1; }
+  @media (hover: none), (prefers-reduced-motion: reduce) {
+    #cursor-glow { display: none !important; }
+  }
+
+  /* ============================================================ */
+  /*  3D HELMET SHOWPIECE                                          */
+  /* ------------------------------------------------------------ */
+  /*  Container for the Three.js canvas. Aspect-locked square so  */
+  /*  the WebGL renderer sees a stable size on first measurement. */
+  /*  A blurred orange radial sits behind the canvas to anchor    */
+  /*  the helmet visually without competing with the model.       */
+  /* ============================================================ */
+  .helmet-stage {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+  .helmet-stage__glow {
+    position: absolute; inset: -10%; z-index: 0;
+    background: radial-gradient(circle, rgba(227,91,30,0.30) 0%, transparent 60%);
+    filter: blur(22px);
+    pointer-events: none;
+  }
+  .helmet-stage canvas {
+    position: relative; z-index: 1;
+    display: block;
+    width: 100% !important; height: 100% !important;
+  }
 </style>
 </head>
 <body class="relative">
@@ -1246,7 +1435,7 @@
     </div>
   </section>
 
-  <section class="border-y border-line bg-panel2 relative">
+  <section class="border-y border-line bg-panel2 relative topo-bg">
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-14 md:py-20 text-center">
       <div class="section-label justify-center mb-4" style="display:inline-flex"><span data-en="Motto" data-tr="Slogan">Motto</span></div>
       <h2 class="display text-[44px] md:text-[84px] lg:text-[110px] text-cream leading-[0.9]">
@@ -1399,7 +1588,7 @@
 
   <div class="divider-x"></div>
 
-  <section class="max-w-[1400px] mx-auto px-5 md:px-10 py-16 md:py-28">
+  <section class="max-w-[1400px] mx-auto px-5 md:px-10 py-16 md:py-28 topo-bg">
     <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
       <div>
         <div class="section-label mb-4"><span data-en="03 / Leadership" data-tr="03 / Yönetim">03 / Leadership</span></div>
@@ -1419,7 +1608,7 @@
 
   <div class="divider-x"></div>
 
-  <section class="max-w-[1400px] mx-auto px-5 md:px-10 py-16 md:py-28">
+  <section class="max-w-[1400px] mx-auto px-5 md:px-10 py-16 md:py-28 topo-bg">
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center mb-12">
       <div class="lg:col-span-7">
         <div class="section-label mb-4"><span data-en="04 / The Pipeline" data-tr="04 / Yetiştirme Yolu">04 / The Pipeline</span></div>
@@ -1443,6 +1632,28 @@
       </div>
     </div>
     <div id="junior-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"></div>
+  </section>
+
+  <!-- 3D Helmet showpiece — Three.js canvas mounted by module script. -->
+  <section class="relative overflow-hidden border-y border-line">
+    <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-16 md:py-24">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
+        <div class="lg:col-span-5">
+          <div class="section-label mb-4"><span data-en="05 / Identity" data-tr="05 / Kimlik">05 / Identity</span></div>
+          <h2 class="display text-[52px] md:text-[88px] text-cream leading-[0.9]">
+            <span data-en="GEAR<br/><span class='text-orange'>UP.</span>" data-tr="HAZIR<br/><span class='text-orange'>OL.</span>">GEAR<br/><span class='text-orange'>UP.</span></span>
+          </h2>
+          <p class="mt-6 max-w-[460px] text-cream/80 text-lg leading-relaxed">
+            <span data-en="Every BAU Rider is a helmet on the road — different lids, same colors, one formation." data-tr="Her BAU Rider yolda bir kasktır — farklı kasklar, aynı renkler, tek formasyon.">Every BAU Rider is a helmet on the road — different lids, same colors, one formation.</span>
+          </p>
+        </div>
+        <div class="lg:col-span-7 flex justify-center">
+          <div class="helmet-stage" id="helmet-stage" aria-hidden="true">
+            <div class="helmet-stage__glow"></div>
+          </div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section class="relative bg-cream overflow-hidden">
@@ -2200,6 +2411,89 @@ function toggleTheme() {
   if (typeof _bauApplyLogos === 'function') _bauApplyLogos();
 }
 
+/* ================================================================
+ *  TILT-ON-HOVER for cards
+ * ================================================================
+ *  Reads cursor position relative to each card's bounding box and
+ *  writes (a) a 3D tilt transform inline (max ±8°), and (b) two
+ *  CSS vars (--tilt-mx, --tilt-my) that drive the radial highlight
+ *  rendered via ::after. rAF-throttled. Disabled on touch and
+ *  prefers-reduced-motion.
+ * ================================================================ */
+function initCardTilt() {
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  document.querySelectorAll('.card, .up-event').forEach(card => {
+    let raf = null, last = null;
+    card.addEventListener('mouseenter', () => {
+      card.style.willChange = 'transform';
+      card.style.setProperty('--tilt-glow', '1');
+    });
+    card.addEventListener('mousemove', (e) => {
+      last = e;
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        if (!last) return;
+        const r = card.getBoundingClientRect();
+        const x = (last.clientX - r.left) / r.width;
+        const y = (last.clientY - r.top)  / r.height;
+        const rotY =  (x - 0.5) * 16; // ±8°
+        const rotX = -(y - 0.5) * 16;
+        card.style.transition = 'transform 0s';
+        card.style.transform =
+          `perspective(800px) translateY(-2px) rotateX(${rotX.toFixed(2)}deg) rotateY(${rotY.toFixed(2)}deg)`;
+        card.style.setProperty('--tilt-mx', (x * 100).toFixed(1) + '%');
+        card.style.setProperty('--tilt-my', (y * 100).toFixed(1) + '%');
+      });
+    });
+    card.addEventListener('mouseleave', () => {
+      if (raf) { cancelAnimationFrame(raf); raf = null; }
+      last = null;
+      card.style.setProperty('--tilt-glow', '0');
+      card.style.transition = 'transform .55s cubic-bezier(.2,.7,.3,1)';
+      card.style.transform = '';
+      card.style.willChange = 'auto';
+    });
+  });
+}
+
+/* ================================================================
+ *  CURSOR GLOW TRAIL
+ * ================================================================
+ *  Lerps a single fixed orange radial toward the cursor at ~0.15
+ *  per frame for a soft trail. rAF only runs while we're catching
+ *  up — once the glow is settled, we stop calling RAF until the
+ *  next mousemove. CSS handles theme/touch/reduced-motion gating.
+ * ================================================================ */
+function initCursorGlow() {
+  if (!window.matchMedia('(hover: hover)').matches) return;
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const glow = document.getElementById('cursor-glow');
+  if (!glow) return;
+  const HALF = 200; /* half of the 400px box, so we center on the cursor */
+  let tx = -1000, ty = -1000, x = -1000, y = -1000;
+  let raf = null, visible = false;
+  const tick = () => {
+    raf = null;
+    x += (tx - x) * 0.15;
+    y += (ty - y) * 0.15;
+    glow.style.transform = `translate3d(${(x - HALF).toFixed(1)}px, ${(y - HALF).toFixed(1)}px, 0)`;
+    if (Math.abs(tx - x) > 0.3 || Math.abs(ty - y) > 0.3) {
+      raf = requestAnimationFrame(tick);
+    }
+  };
+  document.addEventListener('mousemove', (e) => {
+    tx = e.clientX; ty = e.clientY;
+    if (!visible) { visible = true; glow.classList.add('on'); }
+    if (!raf) raf = requestAnimationFrame(tick);
+  }, { passive: true });
+  document.addEventListener('mouseleave', () => {
+    visible = false;
+    glow.classList.remove('on');
+  });
+}
+
 
 /* ================================================================
  *  INIT
@@ -2230,9 +2524,141 @@ renderMembers();
 renderUpcoming();
 renderPastEvents();
 initCarousels();
+initCardTilt();
+initCursorGlow();
 
 const initialHash = window.location.hash.replace('#', '');
 if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
+</script>
+
+<!-- Cursor glow trail — JS-driven, hidden behind the intro overlay (z-9999)
+     until the intro is removed; killed by CSS on touch + reduced motion. -->
+<div id="cursor-glow" aria-hidden="true"></div>
+
+<!-- ================================================================
+     3D HELMET SHOWPIECE — Three.js (ESM via importmap in <head>)
+     ----------------------------------------------------------------
+     IntersectionObserver-gated: scene + renderer are built only on
+     first intersection, RAF runs only while in view. Slow Y rotation
+     plus a ±10° cursor-driven parallax. Reduced motion = single
+     static frame. If the GLTF fails to load (network/CORS), a
+     procedural metallic sphere with emissive orange stands in.
+     ================================================================ -->
+<script type="module">
+  import * as THREE from 'three';
+  import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+  (function initHelmet() {
+    const stage = document.getElementById('helmet-stage');
+    if (!stage) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    let scene, camera, renderer, helmet;
+    let mouseX = 0, mouseY = 0;
+    let baseY = 0;
+    let raf = null, isVisible = false;
+    let initialized = false;
+
+    function build() {
+      if (initialized) return;
+      initialized = true;
+      const w = stage.clientWidth || 320;
+      const h = stage.clientHeight || 320;
+
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(35, w / h, 0.1, 100);
+      camera.position.set(0, 0, 4.6);
+
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setSize(w, h, false);
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      renderer.toneMappingExposure = 1.15;
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      stage.appendChild(renderer.domElement);
+
+      /* Lighting — soft ambient + a warm key + a cooler rim */
+      scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+      const key = new THREE.DirectionalLight(0xffaa66, 1.4);
+      key.position.set(2.5, 2, 3);
+      scene.add(key);
+      const rim = new THREE.DirectionalLight(0xff6b2c, 0.55);
+      rim.position.set(-2.5, 1, -1.5);
+      scene.add(rim);
+
+      const loader = new GLTFLoader();
+      loader.load(
+        'https://threejs.org/examples/models/gltf/DamagedHelmet/glTF/DamagedHelmet.gltf',
+        (gltf) => {
+          helmet = gltf.scene;
+          helmet.scale.setScalar(1.45);
+          scene.add(helmet);
+          if (reduced) renderer.render(scene, camera);
+          else if (isVisible) start();
+        },
+        undefined,
+        (err) => {
+          console.warn('[helmet] GLTF load failed; using fallback', err);
+          buildFallback();
+        }
+      );
+    }
+
+    function buildFallback() {
+      const geom = new THREE.SphereGeometry(1.25, 64, 64);
+      const mat  = new THREE.MeshStandardMaterial({
+        color: 0x222226, roughness: 0.35, metalness: 0.85,
+        emissive: 0xff6b2c, emissiveIntensity: 0.18
+      });
+      helmet = new THREE.Mesh(geom, mat);
+      scene.add(helmet);
+      if (reduced) renderer.render(scene, camera);
+      else if (isVisible) start();
+    }
+
+    function tick() {
+      raf = requestAnimationFrame(tick);
+      if (helmet) {
+        baseY += 0.0035;
+        const targetY = baseY + mouseX * (Math.PI / 18); /* ±10° */
+        const targetX = -mouseY * (Math.PI / 18);
+        helmet.rotation.y += (targetY - helmet.rotation.y) * 0.08;
+        helmet.rotation.x += (targetX - helmet.rotation.x) * 0.08;
+      }
+      renderer.render(scene, camera);
+    }
+    function start() { if (!raf && helmet && !reduced) raf = requestAnimationFrame(tick); }
+    function stop()  { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+
+    /* Cursor parallax — viewport-normalized, so the helmet "looks" at the cursor */
+    document.addEventListener('mousemove', (e) => {
+      mouseX = (e.clientX / window.innerWidth)  * 2 - 1;
+      mouseY = (e.clientY / window.innerHeight) * 2 - 1;
+    }, { passive: true });
+
+    window.addEventListener('resize', () => {
+      if (!renderer) return;
+      const w = stage.clientWidth, h = stage.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h, false);
+      if (reduced) renderer.render(scene, camera);
+    });
+
+    /* Build on first intersection; pause RAF when out of view. */
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        isVisible = e.isIntersecting;
+        if (isVisible) {
+          build();
+          start();
+        } else {
+          stop();
+        }
+      });
+    }, { threshold: 0.1 });
+    io.observe(stage);
+  })();
 </script>
 
 </body>
