@@ -2330,24 +2330,26 @@ function toggleTheme() {
   function nudge() {
     if (active) return;
     const now = Date.now();
-    if (now - lastAttempt < 350) return; /* dedupe rapid trackpad ticks */
+    /* Mobile gestures take 300+ms; keep dedupe shorter so two genuine
+       swipes a beat apart aren't collapsed into one. */
+    if (now - lastAttempt < 200) return;
     lastAttempt = now;
     attempts++;
     if (resetTimer) clearTimeout(resetTimer);
-    resetTimer = setTimeout(reset, 2500);
+    resetTimer = setTimeout(reset, 3000);
     if (attempts >= 3) trigger();
   }
   function isAtBottom() {
-    /* Defensive: address-bar resize, rubber-band, and various rendering
-       quirks all shift the precise bottom by a few px on mobile. Pull from
-       multiple sources and use a generous buffer. */
+    /* Address-bar resize, rubber-band, and rendering quirks shift the
+       precise bottom by 20-50 px on iOS. Pull from every available source
+       and keep a wide buffer so we don't miss the limit. */
     const docHeight = Math.max(
       document.body.scrollHeight,
       document.documentElement.scrollHeight,
       document.body.offsetHeight,
       document.documentElement.offsetHeight
     );
-    return window.scrollY + window.innerHeight >= docHeight - 24;
+    return window.scrollY + window.innerHeight >= docHeight - 60;
   }
 
   /* Desktop wheel — count downward wheel events while pinned at the bottom */
@@ -2357,26 +2359,36 @@ function toggleTheme() {
     else if (e.deltaY < -2)           reset();
   }, { passive: true });
 
-  /* Mobile touch — count upward swipes (= scroll-down attempts) at the bottom
-     that didn't actually move the page. We register on document (not window)
-     because some iOS Safari versions don't reliably bubble window-level
-     touches up from within fixed/scrolled regions. */
-  let tStartY = 0, tStartScroll = 0, tValid = false;
+  /* Mobile touch detection has two paths so we don't depend on touchend
+     firing reliably (iOS Safari sometimes drops it during overscroll):
+       1) During touchmove — once the finger has dragged ≥25px upward and
+          we're at the bottom, count it and lock the gesture.
+       2) On touchend — fallback for shorter swipes that completed before
+          touchmove could fire often enough.
+     Listeners use capture phase on document, which has been the most
+     reliable surface across iOS/Android browsers. */
+  let tStartY = 0, tValid = false, tHandled = false;
   document.addEventListener('touchstart', (e) => {
-    if (active || e.touches.length !== 1) { tValid = false; return; }
-    tStartY = e.touches[0].clientY;
-    tStartScroll = window.scrollY;
-    tValid = true;
+    if (active || !e.touches[0]) { tValid = false; tHandled = false; return; }
+    tStartY  = e.touches[0].clientY;
+    tValid   = true;
+    tHandled = false;
   }, { passive: true, capture: true });
+
+  document.addEventListener('touchmove', (e) => {
+    if (active || !tValid || tHandled || !e.touches[0]) return;
+    const dy = tStartY - e.touches[0].clientY;
+    if (dy > 25 && isAtBottom()) {
+      nudge();
+      tHandled = true; /* one count per gesture */
+    }
+  }, { passive: true, capture: true });
+
   document.addEventListener('touchend', (e) => {
-    if (active || !tValid) return;
+    if (active || !tValid || tHandled || !e.changedTouches[0]) return;
     tValid = false;
     const dy = tStartY - e.changedTouches[0].clientY;
-    const scrollDelta = window.scrollY - tStartScroll;
-    /* Looser thresholds for mobile: tiny finger flicks at the rubber-band
-       edge can produce small dy values, and the page may briefly move a
-       few pixels during the bounce. */
-    if (dy > 18 && isAtBottom() && scrollDelta < 12) nudge();
+    if (dy > 15 && isAtBottom()) nudge();
     else if (dy < -25) reset();
   }, { passive: true, capture: true });
 
