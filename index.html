@@ -1195,9 +1195,12 @@
   .floating-cta {
     position: fixed;
     left: 50%;
-    /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
-       indicator's safe-area inset. Matches the mini-tach offset. */
-    bottom: max(110px, calc(env(safe-area-inset-bottom) + 96px));
+    /* Sit cleanly above iOS Safari's bottom chrome. env(safe-area-
+       inset-bottom) only covers the home indicator on notched
+       devices — not the URL bar / tabs row. Stack an explicit 20 px
+       buffer on top of the inset; bump to 24-28 px if real-world
+       testing on Safari/Chrome iOS still feels tight. */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
     transform: translate(-50%, 150%);
     transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
     z-index: 80;
@@ -1291,7 +1294,15 @@
   /*  (idle at 0 px, redline at 120 px). Past the 60 px threshold */
   /*  the status text flips to "RELEASE TO REV" in orange and a   */
   /*  release plays a quick rev animation. Reduced motion off.    */
+  /*                                                              */
+  /*  On mobile we also pin the document to `overscroll-behavior- */
+  /*  y: contain` so iOS Safari's native pull-to-refresh and      */
+  /*  rubber-band don't fire and steal the gesture before our     */
+  /*  handler gets a chance to take it over.                      */
   /* ============================================================ */
+  @media (max-width: 767px) {
+    html, body { overscroll-behavior-y: contain; }
+  }
   .pull-rev {
     position: fixed;
     top: 76px;
@@ -3193,24 +3204,29 @@ function initPullToRev() {
     if (e.touches.length !== 1) { active = false; return; }
     const dx = e.touches[0].clientX - startX;
     const dy = e.touches[0].clientY - startY;
-    /* Yield to horizontal gestures (carousel swipes) */
-    if (!locked && Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 8) {
+    /* Yield to horizontal gestures (carousel swipes) — check first
+       and bail before we ever call preventDefault. */
+    if (!locked && Math.abs(dx) > 6 && Math.abs(dx) > Math.abs(dy)) {
       active = false;
       if (deltaY > 0) reset(false);
       return;
     }
     if (dy <= 0) {
-      /* user reversed — release the gesture cleanly */
+      /* User reversed — release the gesture cleanly */
       if (deltaY > 0) reset(false);
       deltaY = 0;
       return;
     }
-    /* Lock direction once we're clearly vertical */
-    if (!locked && dy > 6) locked = true;
-    if (!locked) return;
+    /* Suppress iOS native pull-to-refresh / rubber-band on the FIRST
+       downward pixel, not after lock. Otherwise the browser commits
+       to its own gesture before our handler can take it over. */
     if (window.scrollY === 0 && dy < MAX * 1.6) {
       e.preventDefault();
     }
+    /* Visual update only kicks in once we're clearly vertical (avoids
+       a stray pixel of tach motion on a horizontal-leaning swipe). */
+    if (!locked && dy > 4) locked = true;
+    if (!locked) return;
     deltaY = Math.min(dy, MAX);
     needle.style.transition = 'none';
     setNeedle(IDLE + (deltaY / MAX) * (REDLINE - IDLE));
