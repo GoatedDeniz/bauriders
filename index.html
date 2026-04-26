@@ -1248,6 +1248,377 @@
     .floating-cta__btn:active { transform: none; filter: none; }
   }
 
+  /* ============================================================ */
+  /*  PULL TO REV                                                 */
+  /* ------------------------------------------------------------ */
+  /*  Mobile-only delight. When at scrollY=0 and the user drags   */
+  /*  down on the page, a small tach fades in just below the nav. */
+  /*  The needle's rotation follows the pull distance linearly    */
+  /*  (idle at 0 px, redline at 120 px). Past the 60 px threshold */
+  /*  the status text flips to "RELEASE TO REV" in orange and a   */
+  /*  release plays a quick rev animation. Reduced motion off.    */
+  /* ============================================================ */
+  .pull-rev {
+    position: fixed;
+    top: 76px;
+    left: 50%;
+    transform: translate(-50%, -8px);
+    z-index: 60;
+    pointer-events: none;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 180ms ease, transform 220ms ease;
+  }
+  @media (max-width: 767px) { .pull-rev { display: flex; } }
+  .pull-rev.is-active { opacity: 1; transform: translate(-50%, 0); }
+  .pull-rev__svg {
+    width: 80px; height: 52px;
+    filter: drop-shadow(0 0 14px rgb(var(--rgb-orange) / 0.45));
+  }
+  .pull-rev__needle {
+    transform-origin: 110px 120px;
+    transform: rotate(-78deg);
+  }
+  .pull-rev__text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.20em;
+    color: rgb(var(--rgb-cream) / 0.7);
+    text-transform: uppercase;
+    transition: color 150ms ease;
+  }
+  .pull-rev__text.armed { color: rgb(var(--rgb-orange)); }
+  @media (prefers-reduced-motion: reduce) {
+    .pull-rev { display: none !important; }
+  }
+
+  /* ============================================================ */
+  /*  MINI TACH — scroll progress indicator                        */
+  /* ------------------------------------------------------------ */
+  /*  Bottom-corner 44 px tach whose needle tracks document scroll */
+  /*  via a smooth lerp (0.18/frame). On mobile the corner flips  */
+  /*  to bottom-LEFT so it doesn't collide with the floating CTA. */
+  /*  Tappable: scrolls to top. Hidden during the intro and while */
+  /*  the mobile nav drawer is open. z-index sits below the CTA.  */
+  /* ============================================================ */
+  .mini-tach {
+    position: fixed;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    right: 16px;
+    width: 44px; height: 44px;
+    z-index: 75;
+    background: rgb(var(--rgb-coal) / 0.65);
+    -webkit-backdrop-filter: blur(8px) saturate(1.1);
+            backdrop-filter: blur(8px) saturate(1.1);
+    border: 1px solid rgb(var(--rgb-line));
+    border-radius: 50%;
+    padding: 0;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    opacity: 0;
+    transition: opacity 250ms ease;
+    box-shadow: 0 6px 20px rgb(0 0 0 / 0.20),
+                0 0 14px rgb(var(--rgb-orange) / 0.20);
+    pointer-events: none;
+  }
+  @media (max-width: 767px) {
+    .mini-tach { right: auto; left: 16px; }
+  }
+  .mini-tach.is-visible { opacity: 0.85; pointer-events: auto; }
+  .mini-tach:hover { opacity: 1; }
+  .mini-tach svg { width: 30px; height: 30px; pointer-events: none; }
+  .mini-tach__needle {
+    transform-origin: 110px 120px;
+    transform: rotate(-78deg);
+    stroke-linecap: round;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .mini-tach { transition: opacity 80ms ease; }
+  }
+
+  /* ============================================================ */
+  /*  EDGE-TO-EDGE HERO PHOTO (mobile)                            */
+  /* ------------------------------------------------------------ */
+  /*  On mobile + tablet (<1024 px) the photo column is pulled out */
+  /*  of the grid and absolutely positioned to fill the entire    */
+  /*  hero. A bottom-up coal gradient over the photo keeps text   */
+  /*  legible regardless of the underlying image. Desktop layout  */
+  /*  (>=1024 px) is untouched — the photo stays as a grid col.   */
+  /* ============================================================ */
+  @media (max-width: 1023px) {
+    .hero-photo-col {
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: none !important;
+      z-index: 0;
+    }
+    .hero-photo-col::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(to top,
+        rgb(var(--rgb-coal) / 0.88) 0%,
+        rgb(var(--rgb-coal) / 0.55) 28%,
+        rgb(var(--rgb-coal) / 0.18) 55%,
+        transparent 100%);
+      pointer-events: none;
+      z-index: 2;
+    }
+    .hero-photo-col > * { position: relative; z-index: 1; }
+    /* Bump text layer to clear the gradient */
+    .hero-slide .content-left { z-index: 4; }
+  }
+
+  /* ============================================================ */
+  /*  STICKY SECTION LABELS (mobile)                              */
+  /* ------------------------------------------------------------ */
+  /*  Thin strip just below the fixed nav. JS swaps the label as  */
+  /*  the user scrolls into landmark sections (Tuesdays, Join,    */
+  /*  About, Events). Hidden while still inside the hero, while   */
+  /*  the intro is in DOM, and while the mobile nav is open.      */
+  /* ============================================================ */
+  .section-label-strip {
+    position: fixed;
+    top: 72px; left: 0; right: 0;
+    height: 36px;
+    z-index: 49; /* just under header (50) */
+    background: rgb(var(--rgb-panel) / 0.85);
+    -webkit-backdrop-filter: blur(10px) saturate(1.1);
+            backdrop-filter: blur(10px) saturate(1.1);
+    border-bottom: 1px solid rgb(var(--rgb-orange));
+    display: none;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transform: translateY(-4px);
+    transition: opacity 200ms ease, transform 200ms ease;
+    pointer-events: none;
+  }
+  @media (max-width: 767px) { .section-label-strip { display: flex; } }
+  .section-label-strip.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .section-label-strip__text {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 20px;
+    letter-spacing: 0.14em;
+    color: rgb(var(--rgb-cream));
+    text-transform: uppercase;
+    transition: opacity 180ms ease, transform 180ms ease;
+  }
+  .section-label-strip__text.swap-out {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .section-label-strip,
+    .section-label-strip__text { transition: opacity 100ms ease; transform: none !important; }
+  }
+
+  /* ============================================================ */
+  /*  AMBIENT AMPLIFICATION (mobile)                              */
+  /* ------------------------------------------------------------ */
+  /*  Subtle desktop atmosphere doesn't read on a small screen.   */
+  /*  Bump the alpha on every existing atmospheric layer ~50–80%  */
+  /*  inside a single mobile breakpoint so the page feels art-    */
+  /*  directed on phones too.                                     */
+  /* ============================================================ */
+  @media (max-width: 768px) {
+    /* Warm pools + hero glow — boost both light + dark variants */
+    :root {
+      --atm-warm-1:    rgba(227,  91, 30, 0.05);
+      --atm-warm-2:    rgba(255, 200, 150, 0.10);
+      --atm-hero-glow: rgba(227,  91, 30, 0.18);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --atm-warm-1:    rgba(227,  91, 30, 0.13);
+        --atm-warm-2:    rgba(255, 200, 150, 0.30);
+        --atm-hero-glow: rgba(227,  91, 30, 0.30);
+      }
+    }
+    .always-light {
+      --atm-warm-1:    rgba(227,  91, 30, 0.13);
+      --atm-warm-2:    rgba(255, 200, 150, 0.30);
+      --atm-hero-glow: rgba(227,  91, 30, 0.30);
+    }
+    .always-dark {
+      --atm-warm-1:    rgba(227,  91, 30, 0.05);
+      --atm-warm-2:    rgba(255, 200, 150, 0.10);
+      --atm-hero-glow: rgba(227,  91, 30, 0.18);
+    }
+    /* Topographic contour — bump alpha on its pseudo */
+    .topo-bg::before { opacity: 0.07; }
+    @media (prefers-color-scheme: light) { .topo-bg::before { opacity: 0.10; } }
+    .always-light .topo-bg::before { opacity: 0.10; }
+    .always-dark  .topo-bg::before { opacity: 0.07; }
+    /* Paper grain — slightly stronger so it actually reads */
+    body { --grain-opacity: 0.06; }
+    .always-light { --grain-opacity: 0.07; }
+    /* Watermark logos in slides — boost their faint orange-ish look */
+    .logo-img.watermark { opacity: 0.12; }
+    @media (prefers-color-scheme: light) { .logo-img.watermark { opacity: 0.14; } }
+    .always-light .logo-img.watermark { opacity: 0.14; }
+    .always-dark  .logo-img.watermark { opacity: 0.12; }
+  }
+
+  /* ============================================================ */
+  /*  MOBILE BOTTOM SHEET — member detail                          */
+  /* ------------------------------------------------------------ */
+  /*  A drag-dismissable bottom sheet that opens when a member    */
+  /*  card is tapped on mobile/tablet. Backdrop fades in with the */
+  /*  blur; sheet slides up from below. Drag handle, X close,     */
+  /*  Esc, backdrop tap, and downward drag past 100 px (or with   */
+  /*  velocity > 0.5 px/ms) all dismiss. Internally scrollable.   */
+  /*  Hidden entirely on >=1024 px (desktop keeps existing card   */
+  /*  behavior).                                                  */
+  /* ============================================================ */
+  .sheet-backdrop {
+    position: fixed; inset: 0;
+    background: rgb(0 0 0 / 0.55);
+    -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+    opacity: 0; pointer-events: none;
+    transition: opacity 280ms ease;
+    z-index: 200;
+  }
+  .sheet-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgb(var(--rgb-panel));
+    border-top: 1px solid rgb(var(--rgb-line));
+    border-radius: 16px 16px 0 0;
+    max-height: 85vh;
+    display: flex; flex-direction: column;
+    transform: translateY(100%);
+    transition: transform 280ms cubic-bezier(.4, 0, 1, 1);
+    z-index: 201;
+    pointer-events: none;
+    box-shadow: 0 -10px 40px rgb(0 0 0 / 0.30);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .sheet.is-open {
+    transform: translateY(0);
+    transition: transform 320ms cubic-bezier(.2, .8, .2, 1);
+    pointer-events: auto;
+  }
+  .sheet__handle {
+    width: 36px; height: 4px;
+    background: rgb(var(--rgb-line));
+    border-radius: 2px;
+    margin: 10px auto 4px;
+    flex-shrink: 0;
+    cursor: grab;
+  }
+  .sheet__close {
+    position: absolute; top: 10px; right: 12px;
+    width: 32px; height: 32px;
+    display: inline-flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid rgb(var(--rgb-line));
+    color: rgb(var(--rgb-cream));
+    cursor: pointer;
+    border-radius: 50%;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+  }
+  .sheet__close:hover {
+    border-color: rgb(var(--rgb-orange));
+    color: rgb(var(--rgb-orange));
+  }
+  .sheet__body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding: 8px 24px 32px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .sheet__avatar {
+    width: 110px; height: 110px;
+    margin: 6px auto 18px;
+    border-radius: 50%;
+    border: 1px solid rgb(var(--rgb-line));
+    overflow: hidden;
+    background: var(--card-grad);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .sheet__avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .sheet__avatar svg { width: 50%; height: 50%; opacity: 0.4; color: rgb(var(--rgb-steel)); }
+  .sheet__name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 32px;
+    text-align: center;
+    color: rgb(var(--rgb-cream));
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+  .sheet__role {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px; letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgb(var(--rgb-orange));
+    text-align: center;
+    margin-top: 6px;
+  }
+  .sheet__pill-wrap { display: flex; justify-content: center; margin-top: 14px; }
+  .sheet__pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px;
+    border: 1px solid rgb(var(--rgb-orange) / 0.35);
+    background: rgb(var(--rgb-orange) / 0.10);
+    color: rgb(var(--rgb-orange));
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.22em;
+  }
+  .sheet__pill::before {
+    content: ''; width: 5px; height: 5px;
+    background: rgb(var(--rgb-orange));
+    border-radius: 50%;
+  }
+  .sheet__fields { margin: 24px 0; }
+  .sheet-field {
+    display: flex; justify-content: space-between; align-items: baseline;
+    padding: 12px 0;
+    border-top: 1px solid rgb(var(--rgb-line));
+    gap: 16px;
+  }
+  .sheet-field:last-child { border-bottom: 1px solid rgb(var(--rgb-line)); }
+  .sheet-field__label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgb(var(--rgb-steel));
+    flex-shrink: 0;
+  }
+  .sheet-field__value {
+    font-family: 'Barlow', sans-serif;
+    font-size: 15px;
+    color: rgb(var(--rgb-cream));
+    text-align: right;
+    word-break: break-word;
+    min-width: 0;
+  }
+  .sheet-field__value a {
+    color: rgb(var(--rgb-orange));
+    text-decoration: none;
+    border-bottom: 1px dashed rgb(var(--rgb-orange) / 0.5);
+  }
+
+  @media (min-width: 1024px) {
+    .sheet, .sheet-backdrop { display: none !important; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .sheet, .sheet-backdrop { transition: opacity 150ms ease !important; }
+    .sheet { transform: translateY(0); opacity: 0; }
+    .sheet.is-open { opacity: 1; transform: translateY(0); }
+  }
+
 </style>
 </head>
 <body class="relative">
@@ -1592,7 +1963,7 @@
     </div>
   </section>
 
-  <section class="relative bg-coal py-16 md:py-28 overflow-hidden">
+  <section id="tuesdays" class="relative bg-coal py-16 md:py-28 overflow-hidden">
     <div class="absolute inset-0 grid-bg opacity-50"></div>
     <div class="absolute top-0 left-0 right-0 h-[1px] bg-orange"></div>
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 relative">
@@ -1642,7 +2013,7 @@
     </div>
   </section>
 
-  <section class="always-dark relative bg-orange overflow-hidden">
+  <section id="join" class="always-dark relative bg-orange overflow-hidden">
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-20 md:py-28 relative">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
         <div class="md:col-span-8">
@@ -2284,7 +2655,7 @@ function renderHeroSlides() {
               <p class="mt-3 md:mt-5 max-w-[540px] text-cream/85 text-sm md:text-lg leading-relaxed"><span data-en="${esc(s.desc_en)}" data-tr="${esc(s.desc_tr)}">${esc(s.desc_en)}</span></p>
               <div class="mt-4 md:mt-7"><a href="#events" onclick="showView('events'); return false;" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a></div>
             </div>
-            <div class="lg:col-span-5 h-[150px] sm:h-[220px] lg:h-full lg:min-h-[220px]">${photoSlot}</div>
+            <div class="hero-photo-col lg:col-span-5 lg:h-full lg:min-h-[220px] sm:h-[220px] h-[150px]">${photoSlot}</div>
           </div>
         </div>
       </div>`;
@@ -2725,6 +3096,529 @@ function initFloatingCTA() {
   applyVisibility();
 }
 
+/* ================================================================
+ *  PULL TO REV
+ * ================================================================
+ *  Mobile-only gesture. When the page is at the top and the user
+ *  drags downward, a small tach reveals just below the nav. The
+ *  needle interpolates from -78° (idle) at 0 px through redline at
+ *  120 px. Past the 60 px threshold, the status text flips to
+ *  "RELEASE TO REV" and a release plays a quick rev animation.
+ *  We carefully only call preventDefault while the gesture is
+ *  active and the dominant axis is vertical — horizontal swipes on
+ *  the hero carousel still pass through to its own swipe handler.
+ * ================================================================ */
+function initPullToRev() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!window.matchMedia('(max-width: 767px)').matches) return;
+  const widget = document.getElementById('pullRev');
+  if (!widget) return;
+  const needle  = widget.querySelector('.pull-rev__needle');
+  const textEl  = widget.querySelector('[data-pullrev-text]');
+
+  const THRESHOLD = 60, MAX = 120, IDLE = -78, REDLINE = 78;
+  let active = false, locked = false, startX = 0, startY = 0, deltaY = 0;
+
+  function setNeedle(deg) { needle.style.transform = `rotate(${deg}deg)`; }
+  function setText(s, armed) {
+    textEl.textContent = s;
+    textEl.classList.toggle('armed', !!armed);
+  }
+  function reset(immediate) {
+    if (immediate) {
+      needle.style.transition = 'none';
+      setNeedle(IDLE);
+      void needle.offsetWidth;
+      needle.style.transition = '';
+    } else {
+      needle.style.transition = 'transform 240ms cubic-bezier(.2,.7,.3,1)';
+      setNeedle(IDLE);
+    }
+    setText('PULL TO REV', false);
+  }
+
+  function onStart(e) {
+    if (e.touches.length !== 1) return;
+    if (window.scrollY > 0) return;
+    if (document.getElementById('intro-overlay')) return;
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    deltaY = 0;
+    active = true;
+    locked = false;
+  }
+  function onMove(e) {
+    if (!active) return;
+    if (e.touches.length !== 1) { active = false; return; }
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    /* Yield to horizontal gestures (carousel swipes) */
+    if (!locked && Math.abs(dx) > Math.abs(dy) * 1.2 && Math.abs(dx) > 8) {
+      active = false;
+      if (deltaY > 0) reset(false);
+      return;
+    }
+    if (dy <= 0) {
+      /* user reversed — release the gesture cleanly */
+      if (deltaY > 0) reset(false);
+      deltaY = 0;
+      return;
+    }
+    /* Lock direction once we're clearly vertical */
+    if (!locked && dy > 6) locked = true;
+    if (!locked) return;
+    if (window.scrollY === 0 && dy < MAX * 1.6) {
+      e.preventDefault();
+    }
+    deltaY = Math.min(dy, MAX);
+    needle.style.transition = 'none';
+    setNeedle(IDLE + (deltaY / MAX) * (REDLINE - IDLE));
+    const armed = deltaY >= THRESHOLD;
+    setText(armed ? 'RELEASE TO REV' : 'PULL TO REV', armed);
+    widget.classList.add('is-active');
+  }
+  function onEnd() {
+    if (!active) return;
+    active = false;
+    if (deltaY >= THRESHOLD) {
+      /* Quick rev: snap to redline + bounce, then fade out */
+      const start = performance.now(), DUR = 600;
+      function frame(t) {
+        const p = Math.min(1, (t - start) / DUR);
+        let a;
+        if (p < 0.35)      a = IDLE + (REDLINE - IDLE) * (1 - Math.pow(1 - p / 0.35, 3));
+        else if (p < 0.55) { const e = (p - 0.35) / 0.20; a = REDLINE - 28 * Math.sin(e * Math.PI); }
+        else if (p < 0.78) { const e = (p - 0.55) / 0.23; a = REDLINE - 14 + 14 * Math.sin(e * Math.PI); }
+        else                a = REDLINE;
+        needle.style.transition = 'none';
+        setNeedle(a);
+        if (p < 1) requestAnimationFrame(frame);
+        else {
+          widget.classList.remove('is-active');
+          setTimeout(() => reset(true), 220);
+        }
+      }
+      requestAnimationFrame(frame);
+    } else {
+      reset(false);
+      setTimeout(() => widget.classList.remove('is-active'), 220);
+    }
+    deltaY = 0;
+    locked = false;
+  }
+
+  document.addEventListener('touchstart',  onStart, { passive: true });
+  document.addEventListener('touchmove',   onMove,  { passive: false });
+  document.addEventListener('touchend',    onEnd,   { passive: true });
+  document.addEventListener('touchcancel', onEnd,   { passive: true });
+}
+
+/* ================================================================
+ *  MINI TACH — scroll-progress indicator
+ * ================================================================
+ *  44 px tach in the bottom corner whose needle tracks document
+ *  scroll progress (0 % → -78°, 100 % → +78°). Lerp factor 0.18 so
+ *  the needle eases toward the target rather than snapping. Hidden
+ *  while the intro overlay is in DOM or the mobile nav is open.
+ *  Tap = smooth scrollTo(top).
+ * ================================================================ */
+function initMiniTach() {
+  const tach = document.getElementById('miniTach');
+  if (!tach) return;
+  const needle = tach.querySelector('.mini-tach__needle');
+  const mobileNav = document.getElementById('mobileNav');
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const IDLE = -78, REDLINE = 78, RANGE = REDLINE - IDLE;
+  let target = IDLE, current = IDLE;
+  let lerpRAF = null, scrollRAF = null, lastVisible = false;
+
+  function progress() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+  }
+  function shouldShow() {
+    if (window.scrollY < 100) return false;
+    if (document.getElementById('intro-overlay')) return false;
+    if (mobileNav && mobileNav.classList.contains('open')) return false;
+    return true;
+  }
+  function applyVisibility() {
+    const v = shouldShow();
+    if (v !== lastVisible) {
+      lastVisible = v;
+      tach.classList.toggle('is-visible', v);
+    }
+  }
+  function setNeedle(deg) { needle.style.transform = `rotate(${deg.toFixed(2)}deg)`; }
+  function lerpTick() {
+    current += (target - current) * 0.18;
+    setNeedle(current);
+    if (Math.abs(target - current) > 0.1) {
+      lerpRAF = requestAnimationFrame(lerpTick);
+    } else {
+      current = target;
+      setNeedle(current);
+      lerpRAF = null;
+    }
+  }
+  function onScroll() {
+    if (scrollRAF) return;
+    scrollRAF = requestAnimationFrame(() => {
+      scrollRAF = null;
+      target = IDLE + progress() * RANGE;
+      applyVisibility();
+      if (reduced) {
+        current = target;
+        setNeedle(current);
+      } else if (!lerpRAF) {
+        lerpRAF = requestAnimationFrame(lerpTick);
+      }
+    });
+  }
+
+  window.addEventListener('scroll', onScroll, { passive: true });
+  if (mobileNav) {
+    new MutationObserver(applyVisibility)
+      .observe(mobileNav, { attributes: true, attributeFilter: ['class'] });
+  }
+  new MutationObserver(applyVisibility).observe(document.body, { childList: true });
+
+  tach.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
+  });
+
+  onScroll();
+}
+
+/* ================================================================
+ *  STICKY SECTION LABELS
+ * ================================================================
+ *  Mobile-only thin strip under the top nav. IO watches landmark
+ *  sections within the visible view (home: hero / tuesdays / join,
+ *  about: ABOUT, events: EVENTS) and swaps the label as each one
+ *  enters the upper portion of the viewport. Hidden while still in
+ *  the hero (label would be redundant), while the intro overlay is
+ *  in DOM, and while the mobile nav drawer is open.
+ * ================================================================ */
+function initSectionLabels() {
+  if (!window.matchMedia('(max-width: 767px)').matches) return;
+  const strip   = document.getElementById('sectionLabelStrip');
+  const textEl  = document.getElementById('sectionLabelStripText');
+  const hero    = document.getElementById('hero-carousel');
+  const navEl   = document.getElementById('mobileNav');
+  if (!strip || !textEl || !hero) return;
+
+  /* (selector, EN, TR) — covers nav-link landmarks. About/Events
+     get whole-view selectors so their hero title triggers the swap. */
+  const TARGETS = [
+    { sel: '#tuesdays',                en: 'TUESDAYS', tr: 'SALILAR' },
+    { sel: '#join',                    en: 'JOIN',     tr: 'KATIL'   },
+    { sel: '#view-about > section',    en: 'ABOUT',    tr: 'HAKKIMIZDA' },
+    { sel: '#view-events > section',   en: 'EVENTS',   tr: 'ETKİNLİKLER' }
+  ];
+
+  /* Track which targets are intersecting; pick the one nearest the
+     top of the viewport as the "current" section. */
+  const state = new Map();           /* element → entry meta        */
+  let currentEl = null;
+  let pastHero = false;
+
+  function pickCurrent() {
+    let best = null, bestTop = Infinity;
+    state.forEach((meta, el) => {
+      if (!meta.intersecting) return;
+      const top = el.getBoundingClientRect().top;
+      /* Prefer sections whose top is just below the strip (>=70px) */
+      if (top < bestTop) { bestTop = top; best = el; }
+    });
+    return best;
+  }
+
+  function applyLabel(el, meta) {
+    if (el === currentEl) return;
+    currentEl = el;
+    if (!el || !meta) return;
+    /* Tiny crossfade: fade out, swap text, fade in */
+    textEl.classList.add('swap-out');
+    setTimeout(() => {
+      textEl.textContent = meta.en;       /* setLang re-renders below */
+      textEl.setAttribute('data-en', meta.en);
+      textEl.setAttribute('data-tr', meta.tr);
+      /* If TR is currently active, reflect it immediately */
+      const trActive = document.documentElement.getAttribute('data-lang') === 'tr'
+                     || document.querySelector('.lang-btn.lang-tr.active');
+      textEl.textContent = trActive ? meta.tr : meta.en;
+      textEl.classList.remove('swap-out');
+    }, 160);
+  }
+
+  function applyVisibility() {
+    const introUp = !!document.getElementById('intro-overlay');
+    const navOpen = navEl && navEl.classList.contains('open');
+    const showStrip = pastHero && !introUp && !navOpen && currentEl;
+    strip.classList.toggle('is-visible', !!showStrip);
+  }
+
+  /* Observe each landmark with a rootMargin that fires when the
+     section's top is between the strip and the lower half of the
+     viewport. */
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      const meta = state.get(e.target);
+      if (!meta) return;
+      meta.intersecting = e.isIntersecting;
+    });
+    const next = pickCurrent();
+    const meta = next ? state.get(next) : null;
+    applyLabel(next, meta);
+    applyVisibility();
+  }, { rootMargin: '-80px 0px -50% 0px', threshold: 0 });
+
+  TARGETS.forEach(t => {
+    document.querySelectorAll(t.sel).forEach(el => {
+      state.set(el, { en: t.en, tr: t.tr, intersecting: false });
+      io.observe(el);
+    });
+  });
+
+  /* Hero IO — gate "showStrip" so it doesn't appear inside the hero */
+  new IntersectionObserver((entries) => {
+    entries.forEach(e => { pastHero = !e.isIntersecting; });
+    applyVisibility();
+  }, { threshold: 0 }).observe(hero);
+
+  if (navEl) {
+    new MutationObserver(applyVisibility)
+      .observe(navEl, { attributes: true, attributeFilter: ['class'] });
+  }
+  new MutationObserver(applyVisibility).observe(document.body, { childList: true });
+
+  /* When language toggles, re-render the current label */
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest || !e.target.closest('.lang-btn')) return;
+    setTimeout(() => {
+      if (!currentEl) return;
+      const meta = state.get(currentEl);
+      if (!meta) return;
+      const trActive = document.querySelector('.lang-btn.lang-tr.active');
+      textEl.textContent = trActive ? meta.tr : meta.en;
+    }, 0);
+  }, { passive: true });
+}
+
+/* ================================================================
+ *  MOBILE BOTTOM SHEET — member detail
+ * ================================================================
+ *  Tap a member card on mobile/tablet → bottom sheet slides up
+ *  with the member's full profile. Renders any of the optional
+ *  extended fields (bike, years_riding, favorite_route, strava)
+ *  that are present on the data object; absent ones are skipped.
+ *  Drag down past 100 px (or with velocity > 0.5 px/ms) closes.
+ *  Esc, backdrop tap, and the X button also close. Body scroll
+ *  is locked while open via the position-fixed-with-saved-Y
+ *  technique so iOS doesn't bounce-scroll behind the sheet.
+ *  Focus is trapped inside; restored to the originating card.
+ * ================================================================ */
+function initMemberSheet() {
+  if (window.matchMedia('(min-width: 1024px)').matches) return;
+  const sheet     = document.getElementById('memberSheet');
+  const backdrop  = document.getElementById('sheetBackdrop');
+  const body      = document.getElementById('sheetBody');
+  const closeBtn  = sheet && sheet.querySelector('[data-sheet-close]');
+  if (!sheet || !backdrop || !body || !closeBtn) return;
+
+  let openerEl = null, savedScrollY = 0, isOpen = false;
+
+  function currentLang() {
+    return document.querySelector('.lang-btn.lang-tr.active') ? 'tr' : 'en';
+  }
+
+  function fieldRow(labelEn, labelTr, valueHTML) {
+    return `<div class="sheet-field">
+      <div class="sheet-field__label" data-en="${labelEn}" data-tr="${labelTr}">${labelEn}</div>
+      <div class="sheet-field__value">${valueHTML}</div>
+    </div>`;
+  }
+
+  function renderContent(m) {
+    const photoSlot = m.photo
+      ? `<img src="${esc(m.photo)}" alt="${esc(m.name)}" />`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>`;
+
+    const fields = [];
+    if (m.bike)             fields.push(fieldRow('Bike',           'Motor',          esc(m.bike)));
+    if (m.years_riding != null && m.years_riding !== '')
+                            fields.push(fieldRow('Years riding',   'Sürüş yılı',     esc(String(m.years_riding))));
+    if (m.favorite_route)   fields.push(fieldRow('Favorite route', 'Favori rota',    esc(m.favorite_route)));
+    if (m.instagram && m.instagram !== '#')
+      fields.push(fieldRow('Instagram', 'Instagram', `<a href="${esc(m.instagram)}" target="_blank" rel="noopener">${esc(m.instagram)}</a>`));
+    if (m.strava && m.strava !== '#')
+      fields.push(fieldRow('Strava',    'Strava',    `<a href="${esc(m.strava)}" target="_blank" rel="noopener">${esc(m.strava)}</a>`));
+    if (m.linkedin && m.linkedin !== '#')
+      fields.push(fieldRow('LinkedIn',  'LinkedIn',  `<a href="${esc(m.linkedin)}" target="_blank" rel="noopener">${esc(m.linkedin)}</a>`));
+
+    const fieldsHTML = fields.length
+      ? `<div class="sheet__fields">${fields.join('')}</div>` : '';
+
+    const pillEn = m._kind === 'exec' ? 'EXEC' : (m._kind === 'junior' ? 'JUNIOR TEAM' : 'YK');
+    const pillTr = m._kind === 'exec' ? 'ÜST' : (m._kind === 'junior' ? 'JUNIOR EKİP' : 'YK');
+
+    return `
+      <div class="sheet__avatar">${photoSlot}</div>
+      <h3 class="sheet__name" id="sheetName">${esc(m.name)}</h3>
+      <div class="sheet__role" data-en="${esc(m.role_en)}" data-tr="${esc(m.role_tr)}">${esc(m.role_en)}</div>
+      <div class="sheet__pill-wrap"><span class="sheet__pill" data-en="${pillEn}" data-tr="${pillTr}">${pillEn}</span></div>
+      ${fieldsHTML}`;
+  }
+
+  function lockScroll() {
+    savedScrollY = window.scrollY;
+    document.body.style.position = 'fixed';
+    document.body.style.top      = `-${savedScrollY}px`;
+    document.body.style.left     = '0';
+    document.body.style.right    = '0';
+    document.body.style.width    = '100%';
+  }
+  function unlockScroll() {
+    document.body.style.position = '';
+    document.body.style.top      = '';
+    document.body.style.left     = '';
+    document.body.style.right    = '';
+    document.body.style.width    = '';
+    window.scrollTo(0, savedScrollY);
+  }
+
+  function open(member, source) {
+    if (isOpen || !member) return;
+    isOpen = true;
+    openerEl = source;
+    body.innerHTML = renderContent(member);
+    /* Re-apply current language so the new data-en/data-tr nodes render right */
+    if (typeof setLang === 'function') setLang(currentLang());
+
+    lockScroll();
+    backdrop.classList.add('is-open');
+    sheet.classList.add('is-open');
+    sheet.setAttribute('aria-hidden', 'false');
+    backdrop.setAttribute('aria-hidden', 'false');
+
+    /* Focus the close button so keyboard users land somewhere actionable */
+    setTimeout(() => closeBtn.focus({ preventScroll: true }), 60);
+    document.addEventListener('keydown', onKey);
+  }
+
+  function close() {
+    if (!isOpen) return;
+    isOpen = false;
+    sheet.classList.remove('is-open');
+    backdrop.classList.remove('is-open');
+    sheet.setAttribute('aria-hidden', 'true');
+    backdrop.setAttribute('aria-hidden', 'true');
+    sheet.style.transform = '';
+    unlockScroll();
+    document.removeEventListener('keydown', onKey);
+    /* Restore focus to the originating card (article isn't focusable
+       by default — temporarily set tabindex). */
+    if (openerEl && openerEl.focus) {
+      const hadTabindex = openerEl.hasAttribute('tabindex');
+      if (!hadTabindex) openerEl.setAttribute('tabindex', '-1');
+      try { openerEl.focus({ preventScroll: true }); } catch (e) {}
+      if (!hadTabindex) {
+        /* Clean up after focus settles so cards stay default-non-focusable */
+        setTimeout(() => openerEl && openerEl.removeAttribute('tabindex'), 0);
+      }
+    }
+    openerEl = null;
+  }
+
+  function onKey(e) {
+    if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+    if (e.key !== 'Tab') return;
+    /* Trap focus inside the sheet */
+    const focusables = sheet.querySelectorAll(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusables.length) { e.preventDefault(); return; }
+    const first = focusables[0], last = focusables[focusables.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !sheet.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }
+
+  /* ---- Drag-to-dismiss ----------------------------------------- */
+  let dragStartY = 0, dragDelta = 0, dragStartT = 0, dragging = false;
+  sheet.addEventListener('touchstart', (e) => {
+    if (!isOpen || e.touches.length !== 1) return;
+    /* Only initiate drag from the handle, the close button area, or
+       when the body is scrolled to the top (so internal scroll wins
+       when there's content to scroll through). */
+    const fromHandle = !!e.target.closest('.sheet__handle');
+    if (!fromHandle && body.scrollTop > 0) return;
+    dragStartY = e.touches[0].clientY;
+    dragStartT = Date.now();
+    dragDelta = 0;
+    dragging = true;
+    sheet.style.transition = 'none';
+  }, { passive: true });
+  sheet.addEventListener('touchmove', (e) => {
+    if (!dragging) return;
+    const dy = e.touches[0].clientY - dragStartY;
+    if (dy <= 0) {
+      /* Don't allow upward drag past the rest position */
+      dragDelta = 0;
+      sheet.style.transform = '';
+      return;
+    }
+    dragDelta = dy;
+    sheet.style.transform = `translateY(${dy}px)`;
+  }, { passive: true });
+  function endDrag() {
+    if (!dragging) return;
+    dragging = false;
+    sheet.style.transition = '';
+    const elapsed = Math.max(1, Date.now() - dragStartT);
+    const velocity = dragDelta / elapsed;            /* px/ms */
+    if (dragDelta > 100 || velocity > 0.5) {
+      sheet.style.transform = '';
+      close();
+    } else {
+      sheet.style.transform = '';
+    }
+  }
+  sheet.addEventListener('touchend',    endDrag, { passive: true });
+  sheet.addEventListener('touchcancel', endDrag, { passive: true });
+
+  /* ---- Wire dismiss handlers ----------------------------------- */
+  backdrop.addEventListener('click', close);
+  closeBtn.addEventListener('click', close);
+
+  /* ---- Card → sheet open via event delegation ------------------ */
+  function memberFromCard(card, kind, source) {
+    const grid = card.parentElement;
+    if (!grid) return null;
+    const idx = Array.prototype.indexOf.call(grid.children, card);
+    if (idx < 0 || !source[idx]) return null;
+    return Object.assign({ _kind: kind }, source[idx]);
+  }
+  function attachGrid(sel, kind, source) {
+    const grid = document.querySelector(sel);
+    if (!grid) return;
+    grid.addEventListener('click', (e) => {
+      if (e.target.closest('a, button')) return; /* let social-btn links fire */
+      const card = e.target.closest('article.card');
+      if (!card) return;
+      const m = memberFromCard(card, kind, source);
+      if (m) open(m, card);
+    });
+  }
+  attachGrid('#yk-exec-grid',  'exec',   YK_EXEC);
+  attachGrid('#yk-team-grid',  'yk',     YK_TEAM);
+  attachGrid('#junior-grid',   'junior', JUNIOR_MEMBERS);
+}
+
 
 /* ================================================================
  *  INIT
@@ -2759,6 +3653,10 @@ initCardTilt();
 initCursorGlow();
 initTapFeedback();
 initFloatingCTA();
+initPullToRev();
+initMiniTach();
+initSectionLabels();
+initMemberSheet();
 
 const initialHash = window.location.hash.replace('#', '');
 if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
@@ -2773,6 +3671,44 @@ if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
 <div class="floating-cta" id="floatingCTA" aria-hidden="true">
   <a href="#join" class="floating-cta__btn" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
 </div>
+
+<!-- Sticky section label strip — mobile only. JS swaps the label text. -->
+<div class="section-label-strip" id="sectionLabelStrip" aria-hidden="true">
+  <span class="section-label-strip__text" id="sectionLabelStripText">HOME</span>
+</div>
+
+<!-- Pull-to-rev gesture widget — mobile only. Reuses the intro tach visual. -->
+<div class="pull-rev" id="pullRev" aria-hidden="true">
+  <svg class="pull-rev__svg" viewBox="0 0 220 140" aria-hidden="true">
+    <path d="M 25 122 A 90 90 0 0 1 195 122" stroke="rgba(244,237,224,0.18)" stroke-width="6" fill="none" stroke-linecap="round"/>
+    <path d="M 152 52 A 90 90 0 0 1 195 122" stroke="#E35B1E" stroke-width="6" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <line class="pull-rev__needle" x1="110" y1="120" x2="110" y2="50" stroke="#FF6B2C" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="110" cy="120" r="9" fill="#0B0B0D" stroke="#E35B1E" stroke-width="2"/>
+    <circle cx="110" cy="120" r="3" fill="#FF6B2C"/>
+  </svg>
+  <div class="pull-rev__text" data-pullrev-text>PULL TO REV</div>
+</div>
+
+<!-- Mobile/tablet bottom sheet for member detail. Hidden on desktop via CSS. -->
+<div class="sheet-backdrop" id="sheetBackdrop" aria-hidden="true"></div>
+<aside class="sheet" id="memberSheet" role="dialog" aria-modal="true"
+       aria-labelledby="sheetName" aria-hidden="true" tabindex="-1">
+  <div class="sheet__handle" aria-hidden="true"></div>
+  <button class="sheet__close" type="button" data-sheet-close
+          aria-label="Close" data-en-label="Close" data-tr-label="Kapat">✕</button>
+  <div class="sheet__body" id="sheetBody"></div>
+</aside>
+
+<!-- Mini-tach scroll progress indicator — both desktop + mobile -->
+<button class="mini-tach" id="miniTach" type="button" aria-label="Scroll to top">
+  <svg viewBox="0 0 220 140" aria-hidden="true">
+    <path d="M 25 122 A 90 90 0 0 1 195 122" stroke="rgba(244,237,224,0.20)" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <path d="M 152 52 A 90 90 0 0 1 195 122" stroke="#E35B1E" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
+    <line class="mini-tach__needle" x1="110" y1="120" x2="110" y2="55" stroke="#FF6B2C" stroke-width="6"/>
+    <circle cx="110" cy="120" r="10" fill="#0B0B0D" stroke="#E35B1E" stroke-width="3"/>
+    <circle cx="110" cy="120" r="4" fill="#FF6B2C"/>
+  </svg>
+</button>
 
 </body>
 </html>
