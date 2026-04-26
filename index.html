@@ -1197,7 +1197,7 @@
     left: 50%;
     /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
        indicator's safe-area inset. Matches the mini-tach offset. */
-    bottom: max(72px, calc(env(safe-area-inset-bottom) + 56px));
+    bottom: max(110px, calc(env(safe-area-inset-bottom) + 96px));
     transform: translate(-50%, 150%);
     transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
     z-index: 80;
@@ -1310,7 +1310,7 @@
     /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
        indicator's safe-area inset. Falls back to a large enough
        fixed offset on browsers that don't expose env() values. */
-    bottom: max(72px, calc(env(safe-area-inset-bottom) + 56px));
+    bottom: max(110px, calc(env(safe-area-inset-bottom) + 96px));
     right: 16px;
     width: 44px; height: 44px;
     z-index: 75;
@@ -3050,14 +3050,19 @@ function initFloatingCTA() {
   let pastHero = false;
   let inJoinSection = false;
   let scrollingDown = false;
+  let scrollActive  = false;
   let lastY = window.scrollY;
   let visible = false;
   let raf = null;
+  let idleTimer = null;
 
   function applyVisibility() {
     const introUp = !!document.getElementById('intro-overlay');
     const navOpen = mobileNav && mobileNav.classList.contains('open');
-    const should  = pastHero && !inJoinSection && !introUp && !navOpen && !scrollingDown;
+    /* Only visible while actively scrolling — and only on the upward
+       scroll direction. Idle (no scroll for ~250ms) hides the CTA. */
+    const should  = pastHero && !inJoinSection && !introUp && !navOpen
+                    && scrollActive && !scrollingDown;
     if (should !== visible) {
       visible = should;
       cta.classList.toggle('is-visible', visible);
@@ -3090,10 +3095,20 @@ function initFloatingCTA() {
     raf = requestAnimationFrame(() => {
       raf = null;
       const y = window.scrollY;
-      /* 4 px hysteresis so micro-jitter doesn't flip the state */
+      /* 4 px hysteresis so micro-jitter doesn't flip the direction */
       if (y > lastY + 4)      scrollingDown = true;
       else if (y < lastY - 4) scrollingDown = false;
       lastY = y;
+
+      /* Mark scroll as active and re-arm an idle timer. After ~250 ms
+         of no scroll events the CTA hides regardless of direction. */
+      scrollActive = true;
+      if (idleTimer) clearTimeout(idleTimer);
+      idleTimer = setTimeout(() => {
+        scrollActive = false;
+        applyVisibility();
+      }, 250);
+
       applyVisibility();
     });
   }, { passive: true });
