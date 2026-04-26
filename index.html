@@ -64,10 +64,10 @@
           line:   'rgb(var(--rgb-line) / <alpha-value>)',
           steel:  'rgb(var(--rgb-steel) / <alpha-value>)',
           cream:  'rgb(var(--rgb-cream) / <alpha-value>)',
-          orange: {
-            DEFAULT: 'rgb(var(--rgb-orange) / <alpha-value>)',
-            bright:  'rgb(var(--rgb-orange-bright) / <alpha-value>)',
-            deep:    'rgb(var(--rgb-orange-deep) / <alpha-value>)',
+          red: {
+            DEFAULT: 'rgb(var(--rgb-red) / <alpha-value>)',
+            bright:  'rgb(var(--rgb-red-bright) / <alpha-value>)',
+            deep:    'rgb(var(--rgb-red-deep) / <alpha-value>)',
           },
         },
       },
@@ -85,9 +85,9 @@
     --rgb-cream:         244 237 224;
     --rgb-steel:         138 138 144;
     --rgb-line:          42 42 47;
-    --rgb-orange:        227 91 30;
-    --rgb-orange-bright: 255 107 44;
-    --rgb-orange-deep:   184 68 22;
+    --rgb-red:           232 64 80;
+    --rgb-red-bright:    250 95 110;
+    --rgb-red-deep:      175 35 50;
     --card-grad:         linear-gradient(180deg, #16161A 0%, #121215 100%);
     --pattern-1:         #1C1C21;
     --pattern-2:         #16161A;
@@ -108,6 +108,9 @@
       --rgb-cream:       15 15 16;
       --rgb-steel:       108 108 114;
       --rgb-line:        216 210 192;
+      --rgb-red:         185 25 40;
+      --rgb-red-bright:  200 35 46;
+      --rgb-red-deep:    140 15 25;
       --card-grad:       linear-gradient(180deg, #FFFFFF 0%, #FAF6EC 100%);
       --pattern-1:       #ECE5D0;
       --pattern-2:       #F8F3E5;
@@ -123,6 +126,9 @@
     --rgb-coal:    15 15 16;     --rgb-panel: 22 22 26;
     --rgb-panel2:  28 28 33;     --rgb-cream: 244 237 224;
     --rgb-steel:   138 138 144;  --rgb-line:  42 42 47;
+    --rgb-red:        232 64 80;
+    --rgb-red-bright: 250 95 110;
+    --rgb-red-deep:   175 35 50;
     --card-grad:   linear-gradient(180deg, #16161A 0%, #121215 100%);
     --pattern-1:   #1C1C21;      --pattern-2: #16161A;
     --logo-filter: invert(1);    color-scheme: dark;
@@ -131,6 +137,9 @@
     --rgb-coal:    244 237 224;  --rgb-panel: 255 255 255;
     --rgb-panel2:  250 246 236;  --rgb-cream: 15 15 16;
     --rgb-steel:   108 108 114;  --rgb-line:  216 210 192;
+    --rgb-red:        185 25 40;
+    --rgb-red-bright: 200 35 46;
+    --rgb-red-deep:   140 15 25;
     --card-grad:   linear-gradient(180deg, #FFFFFF 0%, #FAF6EC 100%);
     --pattern-1:   #ECE5D0;      --pattern-2: #F8F3E5;
     --logo-filter: none;         color-scheme: light;
@@ -165,7 +174,7 @@
     color: rgb(var(--rgb-steel));
     display: inline-flex; align-items: center; gap: 10px;
   }
-  .section-label::before { content: ''; width: 24px; height: 1px; background: rgb(var(--rgb-orange)); }
+  .section-label::before { content: ''; width: 24px; height: 1px; background: rgb(var(--rgb-red)); }
 
   .marquee {
     overflow: hidden; white-space: nowrap;
@@ -179,21 +188,21 @@
     font-size: 22px; letter-spacing: 0.04em; color: rgb(var(--rgb-cream));
   }
   .marquee__track > span { display: inline-flex; align-items: center; gap: 1.25rem; }
-  .marquee__dot { width: 6px; height: 6px; border-radius: 50%; background: #E35B1E; display: inline-block; }
+  .marquee__dot { width: 6px; height: 6px; border-radius: 50%; background: #E84050; display: inline-block; }
   @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 
   .btn-primary {
-    background: rgb(var(--rgb-orange)); color: #0B0B0D;
+    background: rgb(var(--rgb-red)); color: rgb(var(--rgb-coal));
     font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.08em;
     padding: 14px 26px; display: inline-flex; align-items: center; gap: 12px;
-    border: 1px solid rgb(var(--rgb-orange)); transition: all .2s ease;
+    border: 1px solid rgb(var(--rgb-red)); transition: all .2s ease;
     clip-path: polygon(0 0, 100% 0, 100% 100%, 12px 100%, 0 calc(100% - 12px));
   }
   .btn-primary:hover {
-    background: rgb(var(--rgb-orange-bright));
-    border-color: rgb(var(--rgb-orange-bright));
+    background: rgb(var(--rgb-red-bright));
+    border-color: rgb(var(--rgb-red-bright));
     transform: translate(-2px, -2px);
-    box-shadow: 4px 4px 0 rgb(var(--rgb-orange-deep));
+    box-shadow: 4px 4px 0 rgb(var(--rgb-red-deep));
   }
   .btn-ghost {
     color: rgb(var(--rgb-cream));
@@ -205,10 +214,10 @@
   .btn-small {
     font-family: 'Bebas Neue', sans-serif; font-size: 15px; letter-spacing: 0.1em;
     padding: 10px 18px; display: inline-flex; align-items: center; gap: 8px;
-    border: 1px solid rgb(var(--rgb-orange));
-    color: rgb(var(--rgb-orange)); transition: all .2s ease;
+    border: 1px solid rgb(var(--rgb-red));
+    color: rgb(var(--rgb-red)); transition: all .2s ease;
   }
-  .btn-small:hover { background: rgb(var(--rgb-orange)); color: #0B0B0D; }
+  .btn-small:hover { background: rgb(var(--rgb-red)); color: rgb(var(--rgb-coal)); }
 
   /* HERO CAROUSEL */
   .hero-carousel {
@@ -247,8 +256,8 @@
     transition: all .2s ease; z-index: 10;
   }
   .hero-arrow:hover {
-    border-color: rgb(var(--rgb-orange));
-    color: rgb(var(--rgb-orange));
+    border-color: rgb(var(--rgb-red));
+    color: rgb(var(--rgb-red));
     background: rgb(var(--rgb-coal) / 0.85);
   }
   .hero-arrow.prev { left: 16px; }
@@ -269,7 +278,7 @@
     width: 28px; height: 3px; background: rgb(var(--rgb-cream) / 0.25);
     transition: all .3s ease; cursor: pointer;
   }
-  .hero-dot.active { background: rgb(var(--rgb-orange)); width: 48px; }
+  .hero-dot.active { background: rgb(var(--rgb-red)); width: 48px; }
   .hero-counter {
     position: absolute; top: 24px; right: 24px; z-index: 10;
     font-family: 'JetBrains Mono', monospace; font-size: 12px; letter-spacing: 0.22em;
@@ -281,7 +290,7 @@
     position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
     background: rgb(var(--rgb-cream) / 0.08); z-index: 10;
   }
-  .hero-progress-fill { height: 100%; width: 0; background: rgb(var(--rgb-orange)); }
+  .hero-progress-fill { height: 100%; width: 0; background: rgb(var(--rgb-red)); }
   .hero-carousel.playing .hero-progress-fill {
     animation: fillProgress var(--interval, 6500ms) linear forwards;
   }
@@ -290,8 +299,8 @@
   .slide-photo {
     position: relative; width: 100%; height: 100%;
     background:
-      radial-gradient(circle at 30% 20%, rgb(var(--rgb-orange) / 0.15) 0%, transparent 55%),
-      radial-gradient(circle at 80% 70%, rgb(var(--rgb-orange) / 0.08) 0%, transparent 50%),
+      radial-gradient(circle at 30% 20%, rgb(var(--rgb-red) / 0.15) 0%, transparent 55%),
+      radial-gradient(circle at 80% 70%, rgb(var(--rgb-red) / 0.08) 0%, transparent 50%),
       repeating-linear-gradient(45deg, var(--pattern-1) 0 6px, var(--pattern-2) 6px 12px);
     overflow: hidden;
   }
@@ -334,7 +343,7 @@
     display: flex; align-items: center; justify-content: center;
     transition: all .2s ease; z-index: 5;
   }
-  .mini-arrow:hover { border-color: rgb(var(--rgb-orange)); color: rgb(var(--rgb-orange)); }
+  .mini-arrow:hover { border-color: rgb(var(--rgb-red)); color: rgb(var(--rgb-red)); }
   .mini-arrow.prev { left: 10px; } .mini-arrow.next { right: 10px; }
   .mini-dots {
     position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
@@ -345,7 +354,7 @@
     background: rgb(var(--rgb-cream) / 0.3);
     transition: all .3s ease; cursor: pointer;
   }
-  .mini-dot.active { background: rgb(var(--rgb-orange)); width: 32px; }
+  .mini-dot.active { background: rgb(var(--rgb-red)); width: 32px; }
   .mini-counter {
     position: absolute; top: 10px; left: 12px; z-index: 5;
     font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
@@ -357,7 +366,7 @@
   .photo-ph {
     width: 100%; height: 100%; position: relative;
     background:
-      radial-gradient(circle at 30% 30%, rgb(var(--rgb-orange) / 0.12) 0%, transparent 55%),
+      radial-gradient(circle at 30% 30%, rgb(var(--rgb-red) / 0.12) 0%, transparent 55%),
       repeating-linear-gradient(135deg, var(--pattern-1) 0 5px, var(--pattern-2) 5px 10px);
     display: flex; align-items: center; justify-content: center;
   }
@@ -380,9 +389,9 @@
   }
   .ig-ph::before {
     content: ''; position: absolute; inset: 0;
-    background: radial-gradient(circle at 50% 50%, rgb(var(--rgb-orange) / 0.08) 0%, transparent 60%);
+    background: radial-gradient(circle at 50% 50%, rgb(var(--rgb-red) / 0.08) 0%, transparent 60%);
   }
-  .ig-ph .ig-icon { width: 64px; height: 64px; color: rgb(var(--rgb-orange)); position: relative; z-index: 2; }
+  .ig-ph .ig-icon { width: 64px; height: 64px; color: rgb(var(--rgb-red)); position: relative; z-index: 2; }
   .ig-ph .ig-label {
     font-family: 'Bebas Neue', sans-serif; font-size: 26px;
     color: rgb(var(--rgb-cream)); letter-spacing: 0.12em;
@@ -405,13 +414,13 @@
   }
   .card::before {
     content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-    background: linear-gradient(90deg, rgb(var(--rgb-orange)) 0%, rgb(var(--rgb-orange)) 30%, transparent 30%, transparent 100%);
+    background: linear-gradient(90deg, rgb(var(--rgb-red)) 0%, rgb(var(--rgb-red)) 30%, transparent 30%, transparent 100%);
     transition: all .3s ease;
   }
   .card:hover { border-color: rgb(var(--rgb-cream) / 0.25); transform: translateY(-3px); }
-  .card:hover::before { background: linear-gradient(90deg, rgb(var(--rgb-orange)) 0%, rgb(var(--rgb-orange)) 100%); }
+  .card:hover::before { background: linear-gradient(90deg, rgb(var(--rgb-red)) 0%, rgb(var(--rgb-red)) 100%); }
   .card.exec::before {
-    background: linear-gradient(90deg, rgb(var(--rgb-orange)) 0%, rgb(var(--rgb-orange)) 100%);
+    background: linear-gradient(90deg, rgb(var(--rgb-red)) 0%, rgb(var(--rgb-red)) 100%);
     height: 3px;
   }
   .card.junior::before {
@@ -422,7 +431,7 @@
   .avatar {
     aspect-ratio: 1 / 1;
     background:
-      radial-gradient(circle at 50% 40%, rgb(var(--rgb-orange) / 0.12) 0%, transparent 60%),
+      radial-gradient(circle at 50% 40%, rgb(var(--rgb-red) / 0.12) 0%, transparent 60%),
       repeating-linear-gradient(45deg, var(--pattern-1) 0 4px, var(--pattern-2) 4px 8px);
     display: flex; align-items: center; justify-content: center;
     position: relative; border-bottom: 1px solid rgb(var(--rgb-line));
@@ -442,7 +451,7 @@
     transition: all .2s ease;
     color: rgb(var(--rgb-steel));
   }
-  .social-btn:hover { border-color: rgb(var(--rgb-orange)); color: rgb(var(--rgb-orange)); }
+  .social-btn:hover { border-color: rgb(var(--rgb-red)); color: rgb(var(--rgb-red)); }
   .social-btn svg { width: 15px; height: 15px; }
 
   .lang-btn {
@@ -464,8 +473,8 @@
     cursor: pointer;
   }
   .theme-btn:hover {
-    color: rgb(var(--rgb-orange));
-    border-color: rgb(var(--rgb-orange));
+    color: rgb(var(--rgb-red));
+    border-color: rgb(var(--rgb-red));
   }
   .theme-btn svg { width: 16px; height: 16px; }
   .theme-icon-sun, .theme-icon-moon { display: none; }
@@ -486,12 +495,12 @@
   }
   .nav-link::after {
     content: ''; position: absolute; left: 0; bottom: -2px;
-    width: 0; height: 2px; background: rgb(var(--rgb-orange)); transition: width .25s ease;
+    width: 0; height: 2px; background: rgb(var(--rgb-red)); transition: width .25s ease;
   }
   .nav-link:hover::after, .nav-link.active::after { width: 100%; }
-  .nav-link.active { color: rgb(var(--rgb-orange)); }
+  .nav-link.active { color: rgb(var(--rgb-red)); }
 
-  .value-num { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; color: rgb(var(--rgb-orange)); }
+  .value-num { font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 1; color: rgb(var(--rgb-red)); }
   .watermark { position: absolute; opacity: 0.07; pointer-events: none; }
   [data-en], [data-tr] { transition: opacity .15s ease; }
 
@@ -505,9 +514,9 @@
   .divider-x { height: 1px; background: linear-gradient(90deg, transparent, rgb(var(--rgb-line)) 20%, rgb(var(--rgb-line)) 80%, transparent); }
   .timeline-dot {
     width: 12px; height: 12px;
-    background: rgb(var(--rgb-orange));
+    background: rgb(var(--rgb-red));
     border: 2px solid rgb(var(--rgb-coal));
-    box-shadow: 0 0 0 2px rgb(var(--rgb-orange)); border-radius: 50%;
+    box-shadow: 0 0 0 2px rgb(var(--rgb-red)); border-radius: 50%;
   }
 
   .event-tab {
@@ -516,25 +525,25 @@
     background: transparent; border: 1px solid rgb(var(--rgb-line)); transition: all .2s ease;
   }
   .event-tab:hover { color: rgb(var(--rgb-cream)); border-color: rgb(var(--rgb-cream)); }
-  .event-tab.active { color: #0B0B0D; background: rgb(var(--rgb-orange)); border-color: rgb(var(--rgb-orange)); }
+  .event-tab.active { color: rgb(var(--rgb-coal)); background: rgb(var(--rgb-red)); border-color: rgb(var(--rgb-red)); }
 
   .up-event {
     border: 1px solid rgb(var(--rgb-line));
     background: var(--card-grad);
     transition: all .25s ease;
   }
-  .up-event:hover { border-color: rgb(var(--rgb-orange)); }
+  .up-event:hover { border-color: rgb(var(--rgb-red)); }
 
   .prize {
     background: rgb(var(--rgb-panel));
     border: 1px solid rgb(var(--rgb-line));
     transition: all .2s ease;
   }
-  .prize:hover { border-color: rgb(var(--rgb-orange)); }
+  .prize:hover { border-color: rgb(var(--rgb-red)); }
   .prize-img {
     aspect-ratio: 4 / 3; position: relative;
     background:
-      radial-gradient(circle at 50% 50%, rgb(var(--rgb-orange) / 0.1) 0%, transparent 60%),
+      radial-gradient(circle at 50% 50%, rgb(var(--rgb-red) / 0.1) 0%, transparent 60%),
       repeating-linear-gradient(45deg, var(--pattern-1) 0 4px, var(--pattern-2) 4px 8px);
     border-bottom: 1px solid rgb(var(--rgb-line));
     display: flex; align-items: center; justify-content: center;
@@ -550,12 +559,12 @@
   .exec-pill {
     display: inline-flex; align-items: center; gap: 6px;
     font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: 0.22em;
-    color: rgb(var(--rgb-orange));
-    background: rgb(var(--rgb-orange) / 0.1);
-    border: 1px solid rgb(var(--rgb-orange) / 0.35);
+    color: rgb(var(--rgb-red));
+    background: rgb(var(--rgb-red) / 0.1);
+    border: 1px solid rgb(var(--rgb-red) / 0.35);
     padding: 4px 9px;
   }
-  .exec-pill::before { content: ''; width: 5px; height: 5px; background: rgb(var(--rgb-orange)); border-radius: 50%; }
+  .exec-pill::before { content: ''; width: 5px; height: 5px; background: rgb(var(--rgb-red)); border-radius: 50%; }
 
   /* Logo: black-on-transparent and white-on-transparent variants are
      swapped at runtime by JS based on the surrounding theme scope. */
@@ -628,7 +637,7 @@
     transform: translateX(-50%) rotateX(72deg);
     transform-origin: 50% 100%;
     background-image:
-      linear-gradient(0deg,  rgba(227,91,30,0.28) 1px, transparent 1px),
+      linear-gradient(0deg,  rgba(232,64,80,0.28) 1px, transparent 1px),
       linear-gradient(90deg, rgba(244,237,224,0.06) 1px, transparent 1px);
     background-size: 60px 80px, 90px 100%;
     -webkit-mask-image: radial-gradient(ellipse at 50% 100%, #000 0%, transparent 75%);
@@ -645,7 +654,7 @@
     top: 38%; left: 50%;
     width: 90vw; height: 12vh;
     transform: translate(-50%, -50%);
-    background: radial-gradient(ellipse at center, rgba(255,170,100,0.35) 0%, rgba(227,91,30,0.12) 35%, transparent 70%);
+    background: radial-gradient(ellipse at center, rgba(255,140,150,0.35) 0%, rgba(232,64,80,0.12) 35%, transparent 70%);
     filter: blur(14px);
     pointer-events: none;
     opacity: 0;
@@ -659,8 +668,8 @@
     width: 70vw; height: 130vh;
     transform: translateX(-50%);
     background: radial-gradient(ellipse 50% 80% at 50% 0%,
-      rgba(255,170,100,0.20) 0%,
-      rgba(255,140,60,0.08)  25%,
+      rgba(255,140,150,0.20) 0%,
+      rgba(245,90,105,0.08)  25%,
       transparent             65%);
     filter: blur(10px);
     pointer-events: none;
@@ -674,7 +683,7 @@
     width: 80vmin; height: 80vmin;
     max-width: 720px; max-height: 720px;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255,107,44,0.30) 0%, rgba(227,91,30,0.12) 35%, transparent 65%);
+    background: radial-gradient(circle, rgba(250,95,110,0.30) 0%, rgba(232,64,80,0.12) 35%, transparent 65%);
     pointer-events: none;
     filter: blur(2px);
     animation: introGlow 1.4s cubic-bezier(.4,0,.6,1) infinite;
@@ -691,8 +700,8 @@
     width: 60vmax; height: 1.5px;
     background: linear-gradient(90deg,
       transparent 0%,
-      rgba(255,170,100,0.85) 70%,
-      rgba(255,220,180,1) 95%,
+      rgba(255,140,150,0.85) 70%,
+      rgba(255,210,220,1) 95%,
       transparent 100%);
     transform-origin: 0 50%;
     filter: blur(0.5px);
@@ -711,7 +720,7 @@
     position: absolute; top: 50%; left: 0;
     width: 30vmin; height: 30vmin;
     transform: translate(-50%, -50%);
-    background: radial-gradient(circle, rgba(255,220,180,0.95) 0%, rgba(255,140,60,0.4) 25%, transparent 60%);
+    background: radial-gradient(circle, rgba(255,210,220,0.95) 0%, rgba(245,90,105,0.4) 25%, transparent 60%);
     filter: blur(8px);
     pointer-events: none; mix-blend-mode: screen;
     opacity: 0;
@@ -761,7 +770,7 @@
   .intro-tach {
     position: relative;
     width: 220px; height: 140px;
-    filter: drop-shadow(0 0 24px rgba(227,91,30,0.55));
+    filter: drop-shadow(0 0 24px rgba(232,64,80,0.55));
     opacity: 0;
     transform: scale(.92);
     animation: introTachIn .55s cubic-bezier(.2,.8,.3,1) .15s forwards;
@@ -799,8 +808,8 @@
     position: absolute; bottom: 4px; right: 8px;
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 10px; letter-spacing: 0.16em;
-    color: #FF6B2C;
-    text-shadow: 0 0 10px rgba(227,91,30,0.7);
+    color: #FA5F6E;
+    text-shadow: 0 0 10px rgba(232,64,80,0.7);
     opacity: 0;
     animation: introFade .35s ease .55s forwards;
   }
@@ -822,7 +831,7 @@
   }
   .intro-logo-wrap img {
     width: 100%; height: 100%; object-fit: contain;
-    filter: drop-shadow(0 0 12px rgba(255,107,44,0.5));
+    filter: drop-shadow(0 0 12px rgba(250,95,110,0.5));
   }
 
   /* Wordmark with per-letter mask reveal */
@@ -848,7 +857,7 @@
     transform: translateY(110%);
     opacity: 0;
     animation: introCharIn .55s cubic-bezier(.2,.7,.2,1) forwards;
-    text-shadow: 0 0 18px rgba(227,91,30,0.55);
+    text-shadow: 0 0 18px rgba(232,64,80,0.55);
   }
   @keyframes introCharIn {
     to { transform: translateY(0); opacity: 1; }
@@ -871,14 +880,14 @@
     display: inline-flex; align-items: center; gap: 8px;
     font-family: 'JetBrains Mono', 'Courier New', monospace;
     font-size: 11px; letter-spacing: 0.22em;
-    color: #FF6B2C; margin-top: 6px;
+    color: #FA5F6E; margin-top: 6px;
     opacity: 0;
     animation: introFade .35s ease .35s forwards;
     min-height: 14px;
   }
   .intro-dot {
-    width: 8px; height: 8px; background: #FF6B2C; border-radius: 50%;
-    box-shadow: 0 0 12px rgba(255,107,44,0.95);
+    width: 8px; height: 8px; background: #FA5F6E; border-radius: 50%;
+    box-shadow: 0 0 12px rgba(250,95,110,0.95);
     animation: introBlink .55s steps(2) infinite;
   }
   @keyframes introBlink { 50% { opacity: .25; } }
@@ -893,8 +902,8 @@
   }
   .intro-bar__fill {
     position: relative; height: 100%; width: 0;
-    background: linear-gradient(90deg, #B84416 0%, #E35B1E 50%, #FF6B2C 100%);
-    box-shadow: 0 0 12px rgba(255,107,44,0.7);
+    background: linear-gradient(90deg, #AF2332 0%, #E84050 50%, #FA5F6E 100%);
+    box-shadow: 0 0 12px rgba(250,95,110,0.7);
     animation: introBar 2.65s cubic-bezier(.5,0,.6,1) forwards;
   }
   .intro-bar__fill::after {
@@ -975,11 +984,11 @@
               stroke="rgba(244,237,224,0.12)" stroke-width="6" fill="none" stroke-linecap="round"/>
         <!-- redline zone (static, dim) -->
         <path d="M 152 52 A 90 90 0 0 1 195 122"
-              stroke="rgba(227,91,30,0.35)" stroke-width="6" fill="none" stroke-linecap="round"/>
+              stroke="rgba(232,64,80,0.35)" stroke-width="6" fill="none" stroke-linecap="round"/>
         <!-- animated arc fill that tracks the rev -->
         <path class="intro-tach__arc-fill"
               d="M 25 122 A 90 90 0 0 1 195 122"
-              stroke="#FF6B2C" stroke-width="6" fill="none" stroke-linecap="round"
+              stroke="#FA5F6E" stroke-width="6" fill="none" stroke-linecap="round"
               pathLength="270"/>
         <!-- tick marks -->
         <g stroke="rgba(244,237,224,0.6)" stroke-width="2" stroke-linecap="round">
@@ -996,9 +1005,9 @@
               fill="rgba(244,237,224,0.55)" letter-spacing="2">RPM x1000</text>
         <!-- needle -->
         <line class="intro-tach__needle" x1="110" y1="120" x2="110" y2="44"
-              stroke="#FF6B2C" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="110" cy="120" r="10" fill="#0B0B0D" stroke="#E35B1E" stroke-width="2"/>
-        <circle cx="110" cy="120" r="3"  fill="#FF6B2C"/>
+              stroke="#FA5F6E" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="110" cy="120" r="10" fill="#0B0B0D" stroke="#E84050" stroke-width="2"/>
+        <circle cx="110" cy="120" r="3"  fill="#FA5F6E"/>
       </svg>
       <div class="intro-rpm" id="intro-rpm">0000 RPM</div>
     </div>
@@ -1184,12 +1193,12 @@
   <button class="absolute top-5 right-5 text-cream p-2" onclick="toggleMobile()" aria-label="Close">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="5" x2="19" y2="19"/><line x1="19" y1="5" x2="5" y2="19"/></svg>
   </button>
-  <a href="#home"     onclick="showView('home'); toggleMobile(); return false;"   class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="Home"     data-tr="Ana Sayfa">Home</a>
-  <a href="#about"    onclick="showView('about'); toggleMobile(); return false;"  class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="About"    data-tr="Hakkımızda">About</a>
-  <a href="#events"   onclick="showView('events'); toggleMobile(); return false;" class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="Events"   data-tr="Etkinlikler">Events</a>
-  <a href="#tuesdays" class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
-  <a href="#news"     class="py-4 border-b border-line display text-[28px] text-cream hover:text-orange" data-en="News"     data-tr="Haberler">News</a>
-  <a href="#join"     class="py-4 display text-[28px] text-orange" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
+  <a href="#home"     onclick="showView('home'); toggleMobile(); return false;"   class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Home"     data-tr="Ana Sayfa">Home</a>
+  <a href="#about"    onclick="showView('about'); toggleMobile(); return false;"  class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="About"    data-tr="Hakkımızda">About</a>
+  <a href="#events"   onclick="showView('events'); toggleMobile(); return false;" class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Events"   data-tr="Etkinlikler">Events</a>
+  <a href="#tuesdays" class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
+  <a href="#news"     class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="News"     data-tr="Haberler">News</a>
+  <a href="#join"     class="py-4 display text-[28px] text-red" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
   <div class="mt-auto flex items-center justify-between gap-2">
     <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
       <svg class="theme-icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -1239,10 +1248,10 @@
 
   <section class="max-w-[1400px] mx-auto px-5 md:px-10 py-14 md:py-20">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-      <div><div class="display text-[64px] md:text-[84px] text-orange leading-none">150+</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Active Riders" data-tr="Aktif Sürücü">Active Riders</div></div>
+      <div><div class="display text-[64px] md:text-[84px] text-red leading-none">150+</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Active Riders" data-tr="Aktif Sürücü">Active Riders</div></div>
       <div><div class="display text-[64px] md:text-[84px] text-cream  leading-none">50+</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Rides This Year" data-tr="Bu Yılki Sürüş">Rides This Year</div></div>
       <div><div class="display text-[64px] md:text-[84px] text-cream  leading-none">52</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Fantastic Tuesdays" data-tr="Şahane Salı">Fantastic Tuesdays</div></div>
-      <div><div class="display text-[64px] md:text-[84px] text-orange leading-none">'19</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Since" data-tr="Kuruluş">Since</div></div>
+      <div><div class="display text-[64px] md:text-[84px] text-red leading-none">'19</div><div class="head text-sm md:text-base text-steel uppercase tracking-[0.18em] mt-2" data-en="Since" data-tr="Kuruluş">Since</div></div>
     </div>
   </section>
 
@@ -1250,8 +1259,8 @@
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-14 md:py-20 text-center">
       <div class="section-label justify-center mb-4" style="display:inline-flex"><span data-en="Motto" data-tr="Slogan">Motto</span></div>
       <h2 class="display text-[44px] md:text-[84px] lg:text-[110px] text-cream leading-[0.9]">
-        <span data-en='"ONE RIDE. <span class="text-orange">ONE FORMATION.</span>"' data-tr='"TEK SÜRÜŞ. <span class="text-orange">TEK FORMASYON.</span>"'>
-          "ONE RIDE. <span class="text-orange">ONE FORMATION.</span>"
+        <span data-en='"ONE RIDE. <span class="text-red">ONE FORMATION.</span>"' data-tr='"TEK SÜRÜŞ. <span class="text-red">TEK FORMASYON.</span>"'>
+          "ONE RIDE. <span class="text-red">ONE FORMATION.</span>"
         </span>
       </h2>
     </div>
@@ -1271,17 +1280,17 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-3 gap-px bg-line border border-line">
       <div class="bg-panel p-8 md:p-10">
-        <div class="mono text-xs text-orange mb-6 tracking-[0.22em]">/ 01</div>
+        <div class="mono text-xs text-red mb-6 tracking-[0.22em]">/ 01</div>
         <h3 class="display text-[36px] text-cream mb-3" data-en="THE RIDES" data-tr="SÜRÜŞLER">THE RIDES</h3>
         <p class="text-cream/70 leading-relaxed"><span data-en="Weekly group rides in and around Istanbul. Routes we've memorized, and some we're still discovering. Riders of every level, one formation." data-tr="İstanbul içinde ve çevresinde haftalık grup sürüşleri. Ezberlediğimiz güzergâhlar ve hâlâ keşfettiklerimiz. Her seviyeden sürücü, tek formasyon.">Weekly group rides in and around Istanbul. Routes we've memorized, and some we're still discovering. Riders of every level, one formation.</span></p>
       </div>
       <div class="bg-panel p-8 md:p-10">
-        <div class="mono text-xs text-orange mb-6 tracking-[0.22em]">/ 02</div>
+        <div class="mono text-xs text-red mb-6 tracking-[0.22em]">/ 02</div>
         <h3 class="display text-[36px] text-cream mb-3" data-en="THE COMMUNITY" data-tr="TOPLULUK">THE COMMUNITY</h3>
         <p class="text-cream/70 leading-relaxed"><span data-en="Students, alumni, and new riders — all welcome. Fantastic Tuesdays, mechanic workshops, safety clinics, and plans that somehow always end with a ride." data-tr="Öğrenciler, mezunlar ve yeni sürücüler — herkese açığız. Şahane Salılar, tamir atölyeleri, güvenlik eğitimleri ve her seferinde bir sürüşle biten planlar.">Students, alumni, and new riders — all welcome. Fantastic Tuesdays, mechanic workshops, safety clinics, and plans that somehow always end with a ride.</span></p>
       </div>
       <div class="bg-panel p-8 md:p-10">
-        <div class="mono text-xs text-orange mb-6 tracking-[0.22em]">/ 03</div>
+        <div class="mono text-xs text-red mb-6 tracking-[0.22em]">/ 03</div>
         <h3 class="display text-[36px] text-cream mb-3" data-en="THE CULTURE" data-tr="KÜLTÜR">THE CULTURE</h3>
         <p class="text-cream/70 leading-relaxed"><span data-en="Safety first, always. No one gets left behind. We represent BAU on every ride — and we leave every road better than we found it." data-tr="Önce güvenlik — her zaman. Kimse geride kalmaz. Her sürüşte BAU'yu temsil ederiz ve her yolu bulduğumuzdan daha iyi bırakırız.">Safety first, always. No one gets left behind. We represent BAU on every ride — and we leave every road better than we found it.</span></p>
       </div>
@@ -1290,14 +1299,14 @@
 
   <section class="relative bg-coal py-16 md:py-28 overflow-hidden">
     <div class="absolute inset-0 grid-bg opacity-50"></div>
-    <div class="absolute top-0 left-0 right-0 h-[1px] bg-orange"></div>
+    <div class="absolute top-0 left-0 right-0 h-[1px] bg-red"></div>
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 relative">
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
         <div class="lg:col-span-6">
           <div class="section-label mb-4"><span data-en="02 / Our Signature Night" data-tr="02 / İmza Gecemiz">02 / Our Signature Night</span></div>
           <h2 class="display text-[64px] md:text-[120px] text-cream leading-[0.88]">
             <span data-en="FANTASTIC" data-tr="ŞAHANE">FANTASTIC</span><br/>
-            <span class="text-orange" data-en="TUESDAYS." data-tr="SALILAR.">TUESDAYS.</span>
+            <span class="text-red" data-en="TUESDAYS." data-tr="SALILAR.">TUESDAYS.</span>
           </h2>
           <p class="mt-6 max-w-[520px] text-cream/80 text-lg">
             <span data-en="Every Tuesday — rain, shine, or somewhere in between — we gather for the one night that defines BAU Riders." data-tr="Her Salı — yağmur, güneş ya da ikisinin arası — BAU Riders'ı tanımlayan o tek gece için bir araya geliriz.">Every Tuesday — rain, shine, or somewhere in between — we gather for the one night that defines BAU Riders.</span>
@@ -1307,28 +1316,28 @@
           <div class="space-y-0 border-l border-line pl-8 md:pl-12 relative">
             <div class="relative py-5">
               <div class="timeline-dot absolute -left-[39px] md:-left-[45px] top-7"></div>
-              <div class="mono text-orange text-sm">19:00</div>
+              <div class="mono text-red text-sm">19:00</div>
               <div class="display text-[28px] md:text-[32px] text-cream leading-tight" data-en="PUB SESSION" data-tr="PUB BULUŞMASI">PUB SESSION</div>
               <div class="text-cream/65 text-sm md:text-base mt-1"><span data-en="We meet, we unwind, we swap ride stories, we welcome new faces." data-tr="Toplanırız, gevşeriz, sürüş hikayeleri paylaşırız, yeni yüzleri karşılarız.">We meet, we unwind, we swap ride stories, we welcome new faces.</span></div>
             </div>
             <div class="relative py-5 border-t border-line">
               <div class="timeline-dot absolute -left-[39px] md:-left-[45px] top-7"></div>
-              <div class="mono text-orange text-sm" data-en="LATER" data-tr="İLERLEYEN SAAT">LATER</div>
+              <div class="mono text-red text-sm" data-en="LATER" data-tr="İLERLEYEN SAAT">LATER</div>
               <div class="display text-[28px] md:text-[32px] text-cream leading-tight" data-en="ENGINES ON" data-tr="MOTORLAR ÇALIŞIYOR">ENGINES ON</div>
               <div class="text-cream/65 text-sm md:text-base mt-1"><span data-en="Helmets on. We ride in formation to the week's selected café." data-tr="Kasklar takılı. Formasyon halinde haftanın seçilen kafesine süreriz.">Helmets on. We ride in formation to the week's selected café.</span></div>
             </div>
             <div class="relative py-5 border-t border-line">
               <div class="timeline-dot absolute -left-[39px] md:-left-[45px] top-7"></div>
-              <div class="mono text-orange text-sm">~23:00</div>
+              <div class="mono text-red text-sm">~23:00</div>
               <div class="display text-[28px] md:text-[32px] text-cream leading-tight" data-en="CAFÉ HANGS" data-tr="KAFEDE TAKILMA">CAFÉ HANGS</div>
               <div class="text-cream/65 text-sm md:text-base mt-1"><span data-en="Coffee, conversation, debates about which route is actually the fastest." data-tr="Kahve, sohbet ve &quot;hangi güzergâh daha kısa&quot; tartışmaları.">Coffee, conversation, debates about which route is actually the fastest.</span></div>
             </div>
           </div>
-          <div class="mt-8 p-5 md:p-6 border border-orange/40 bg-orange/5">
+          <div class="mt-8 p-5 md:p-6 border border-red/40 bg-red/5">
             <div class="flex items-start gap-3">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E35B1E" stroke-width="2" class="mt-0.5 shrink-0"><path d="M12 2a5 5 0 0 0-5 5v5c-1 0-2 1-2 2v5h14v-5c0-1-1-2-2-2V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="14" r="1"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#E84050" stroke-width="2" class="mt-0.5 shrink-0"><path d="M12 2a5 5 0 0 0-5 5v5c-1 0-2 1-2 2v5h14v-5c0-1-1-2-2-2V7a5 5 0 0 0-5-5z"/><circle cx="12" cy="14" r="1"/></svg>
               <div>
-                <div class="head text-orange uppercase tracking-[0.18em] text-sm mb-1" data-en="THE ARTÇI RULE" data-tr="ARTÇI KURALI">THE ARTÇI RULE</div>
+                <div class="head text-red uppercase tracking-[0.18em] text-sm mb-1" data-en="THE ARTÇI RULE" data-tr="ARTÇI KURALI">THE ARTÇI RULE</div>
                 <p class="text-cream/85 text-sm md:text-base leading-snug"><span data-en="No motorbike? No problem. Ride as an Artçı (passenger) on the back of a member's bike — as long as a helmet is available or you bring your own. No helmet, no ride." data-tr="Motorun yok mu? Sorun değil. Artçı (yolcu) olarak bir üyenin motorunun arkasında katılabilirsin — ekstra kask varsa ya da kendi kaskını getiriyorsan. Kask yoksa, sürüş yok.">No motorbike? No problem. Ride as an Artçı (passenger) on the back of a member's bike — as long as a helmet is available or you bring your own. No helmet, no ride.</span></p>
               </div>
             </div>
@@ -1338,7 +1347,7 @@
     </div>
   </section>
 
-  <section class="always-dark relative bg-orange overflow-hidden">
+  <section class="always-dark relative bg-red overflow-hidden">
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-20 md:py-28 relative">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
         <div class="md:col-span-8">
@@ -1361,7 +1370,7 @@
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 pt-16 md:pt-24 pb-16 md:pb-24 relative">
       <div class="section-label mb-6"><span data-en="— The Club / Page 02" data-tr="— Kulüp / Sayfa 02">— The Club / Page 02</span></div>
       <h1 class="display text-[80px] sm:text-[140px] md:text-[200px] lg:text-[260px] text-cream leading-[0.85]"><span data-en="ABOUT" data-tr="HAKKIMIZDA">ABOUT</span></h1>
-      <div class="display text-[40px] md:text-[64px] text-orange leading-none mt-2"><span data-en="/ HAKKIMIZDA." data-tr="/ ABOUT.">/ HAKKIMIZDA.</span></div>
+      <div class="display text-[40px] md:text-[64px] text-red leading-none mt-2"><span data-en="/ HAKKIMIZDA." data-tr="/ ABOUT.">/ HAKKIMIZDA.</span></div>
     </div>
   </section>
 
@@ -1370,7 +1379,7 @@
       <div class="lg:col-span-4">
         <div class="section-label mb-4"><span data-en="01 / Our Story" data-tr="01 / Hikayemiz">01 / Our Story</span></div>
         <h2 class="display text-[56px] md:text-[84px] text-cream leading-[0.9]">
-          <span data-en="BORN ON<br/>CAMPUS.<br/><span class='text-orange'>FORGED ON<br/>THE ROAD.</span>" data-tr="KAMPÜSTE<br/>DOĞDUK.<br/><span class='text-orange'>YOLDA<br/>ŞEKİLLENDİK.</span>">BORN ON<br/>CAMPUS.<br/><span class='text-orange'>FORGED ON<br/>THE ROAD.</span></span>
+          <span data-en="BORN ON<br/>CAMPUS.<br/><span class='text-red'>FORGED ON<br/>THE ROAD.</span>" data-tr="KAMPÜSTE<br/>DOĞDUK.<br/><span class='text-red'>YOLDA<br/>ŞEKİLLENDİK.</span>">BORN ON<br/>CAMPUS.<br/><span class='text-red'>FORGED ON<br/>THE ROAD.</span></span>
         </h2>
       </div>
       <div class="lg:col-span-7 lg:col-start-6 space-y-5 text-cream/85 text-lg leading-relaxed">
@@ -1403,7 +1412,7 @@
     <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-12">
       <div>
         <div class="section-label mb-4"><span data-en="03 / Leadership" data-tr="03 / Yönetim">03 / Leadership</span></div>
-        <h2 class="display text-[56px] md:text-[96px] text-cream leading-[0.9]">YÖNETİM<br/><span class="text-orange">KURULU.</span></h2>
+        <h2 class="display text-[56px] md:text-[96px] text-cream leading-[0.9]">YÖNETİM<br/><span class="text-red">KURULU.</span></h2>
       </div>
       <p class="md:max-w-[400px] text-cream/75"><span data-en="Seven members, each owning a pillar of the club. The top three roles are singular; the rest of the team can grow as the club grows." data-tr="Yedi üye, her biri kulübün bir sütununu üstlenir. İlk üç rol tek kişiliktir; ekibin geri kalanı kulüp büyüdükçe genişleyebilir.">Seven members, each owning a pillar of the club. The top three roles are singular; the rest of the team can grow as the club grows.</span></p>
     </div>
@@ -1430,14 +1439,14 @@
         <div class="mt-6 space-y-4 text-cream/80 text-lg leading-relaxed max-w-[620px]">
           <p><span data-en="The Junior Team is our training ground for future leadership — a trial board that gets hands-on experience running the club before earning a seat on the main YK." data-tr="Junior Team, geleceğin liderliği için eğitim sahamız — ana YK'ya oturmadan önce kulübü yönetme deneyimi kazandığımız deneme kurulu.">The Junior Team is our training ground for future leadership — a trial board that gets hands-on experience running the club before earning a seat on the main YK.</span></p>
           <p><span data-en="Juniors shadow the YK, co-lead rides, help organize Fantastic Tuesdays, and take the lead on smaller events. It's where next year's board is built — one kilometer at a time." data-tr="Junior'lar YK'yı yakından takip eder, sürüşleri birlikte yönetir, Şahane Salılar'ın organizasyonuna destek verir ve daha küçük etkinliklerde inisiyatif alır. Gelecek yılın yönetim kurulu burada, bir kilometre bir kilometre inşa edilir.">Juniors shadow the YK, co-lead rides, help organize Fantastic Tuesdays, and take the lead on smaller events. It's where next year's board is built — one kilometer at a time.</span></p>
-          <p class="text-orange font-medium"><span data-en="If you see yourself leading BAU Riders one day, the Junior Team is your on-ramp." data-tr="Bir gün BAU Riders'ın başında olmayı hayal ediyorsan, Junior Team senin giriş rampan.">If you see yourself leading BAU Riders one day, the Junior Team is your on-ramp.</span></p>
+          <p class="text-red font-medium"><span data-en="If you see yourself leading BAU Riders one day, the Junior Team is your on-ramp." data-tr="Bir gün BAU Riders'ın başında olmayı hayal ediyorsan, Junior Team senin giriş rampan.">If you see yourself leading BAU Riders one day, the Junior Team is your on-ramp.</span></p>
         </div>
       </div>
       <div class="lg:col-span-5 flex justify-center lg:justify-end">
         <div class="relative w-[260px] md:w-[340px] aspect-square flex items-center justify-center">
           <div class="absolute inset-0 border border-line"></div>
-          <div class="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-orange"></div>
-          <div class="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-orange"></div>
+          <div class="absolute top-0 left-0 w-10 h-10 border-t-2 border-l-2 border-red"></div>
+          <div class="absolute bottom-0 right-0 w-10 h-10 border-b-2 border-r-2 border-red"></div>
           <img data-bau-logo="junior" alt="BAU Riders Junior Team" class="logo-img w-[80%] h-auto object-contain" />
         </div>
       </div>
@@ -1453,7 +1462,7 @@
           <h2 class="display text-[48px] md:text-[84px] text-coal leading-[0.88]"><span data-en="YOUR STORY<br/>STARTS HERE." data-tr="HİKAYEN<br/>BURADA BAŞLAR.">YOUR STORY<br/>STARTS HERE.</span></h2>
         </div>
         <div class="md:col-span-4 flex md:justify-end">
-          <a href="#join" class="inline-flex items-center gap-3 bg-coal text-cream display text-[22px] px-7 py-4 border border-coal hover:bg-orange hover:border-orange transition-colors"><span data-en="APPLY NOW →" data-tr="ŞİMDİ BAŞVUR →">APPLY NOW →</span></a>
+          <a href="#join" class="inline-flex items-center gap-3 bg-coal text-cream display text-[22px] px-7 py-4 border border-coal hover:bg-red hover:border-red transition-colors"><span data-en="APPLY NOW →" data-tr="ŞİMDİ BAŞVUR →">APPLY NOW →</span></a>
         </div>
       </div>
     </div>
@@ -1467,7 +1476,7 @@
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 pt-16 md:pt-24 pb-12 md:pb-20 relative">
       <div class="section-label mb-6"><span data-en="— The Calendar / Page 03" data-tr="— Takvim / Sayfa 03">— The Calendar / Page 03</span></div>
       <h1 class="display text-[80px] sm:text-[140px] md:text-[200px] lg:text-[260px] text-cream leading-[0.85]"><span data-en="EVENTS" data-tr="ETKİNLİK">EVENTS</span></h1>
-      <div class="display text-[40px] md:text-[64px] text-orange leading-none mt-2"><span data-en="/ ETKİNLİKLER." data-tr="/ EVENTS.">/ ETKİNLİKLER.</span></div>
+      <div class="display text-[40px] md:text-[64px] text-red leading-none mt-2"><span data-en="/ ETKİNLİKLER." data-tr="/ EVENTS.">/ ETKİNLİKLER.</span></div>
     </div>
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 pb-10 flex flex-wrap gap-3">
       <button class="event-tab active" data-event-tab="upcoming" onclick="switchEventTab('upcoming')"><span data-en="UPCOMING" data-tr="YAKLAŞAN">UPCOMING</span></button>
@@ -1507,19 +1516,19 @@
       <div class="md:col-span-3">
         <div class="head text-steel uppercase tracking-[0.18em] text-xs mb-4" data-en="Navigate" data-tr="Sayfalar">Navigate</div>
         <ul class="space-y-2 text-cream/80">
-          <li><a href="#home"   onclick="showView('home'); return false;"   class="hover:text-orange transition-colors" data-en="Home" data-tr="Ana Sayfa">Home</a></li>
-          <li><a href="#about"  onclick="showView('about'); return false;"  class="hover:text-orange transition-colors" data-en="About" data-tr="Hakkımızda">About</a></li>
-          <li><a href="#events" onclick="showView('events'); return false;" class="hover:text-orange transition-colors" data-en="Events" data-tr="Etkinlikler">Events</a></li>
-          <li><a href="#tuesdays" class="hover:text-orange transition-colors" data-en="Fantastic Tuesdays" data-tr="Şahane Salılar">Fantastic Tuesdays</a></li>
-          <li><a href="#news"     class="hover:text-orange transition-colors" data-en="News" data-tr="Haberler">News</a></li>
-          <li><a href="#join"     class="hover:text-orange transition-colors" data-en="Join Us" data-tr="Bize Katıl">Join Us</a></li>
+          <li><a href="#home"   onclick="showView('home'); return false;"   class="hover:text-red transition-colors" data-en="Home" data-tr="Ana Sayfa">Home</a></li>
+          <li><a href="#about"  onclick="showView('about'); return false;"  class="hover:text-red transition-colors" data-en="About" data-tr="Hakkımızda">About</a></li>
+          <li><a href="#events" onclick="showView('events'); return false;" class="hover:text-red transition-colors" data-en="Events" data-tr="Etkinlikler">Events</a></li>
+          <li><a href="#tuesdays" class="hover:text-red transition-colors" data-en="Fantastic Tuesdays" data-tr="Şahane Salılar">Fantastic Tuesdays</a></li>
+          <li><a href="#news"     class="hover:text-red transition-colors" data-en="News" data-tr="Haberler">News</a></li>
+          <li><a href="#join"     class="hover:text-red transition-colors" data-en="Join Us" data-tr="Bize Katıl">Join Us</a></li>
         </ul>
       </div>
       <div class="md:col-span-4">
         <div class="head text-steel uppercase tracking-[0.18em] text-xs mb-4" data-en="Contact" data-tr="İletişim">Contact</div>
         <div class="space-y-3 text-cream/80 text-sm">
-          <div><div class="text-steel text-xs mono tracking-[0.14em] mb-0.5">EMAIL</div><a href="mailto:riders@bahcesehir.edu.tr" class="hover:text-orange transition-colors">riders@bahcesehir.edu.tr</a></div>
-          <div><div class="text-steel text-xs mono tracking-[0.14em] mb-0.5">INSTAGRAM</div><a href="#" class="hover:text-orange transition-colors">@bauriders</a></div>
+          <div><div class="text-steel text-xs mono tracking-[0.14em] mb-0.5">EMAIL</div><a href="mailto:riders@bahcesehir.edu.tr" class="hover:text-red transition-colors">riders@bahcesehir.edu.tr</a></div>
+          <div><div class="text-steel text-xs mono tracking-[0.14em] mb-0.5">INSTAGRAM</div><a href="#" class="hover:text-red transition-colors">@bauriders</a></div>
           <div><div class="text-steel text-xs mono tracking-[0.14em] mb-0.5" data-en="CAMPUS" data-tr="KAMPÜS">CAMPUS</div><span data-en="Bahçeşehir Üniversitesi, Beşiktaş — Istanbul" data-tr="Bahçeşehir Üniversitesi, Beşiktaş — İstanbul">Bahçeşehir Üniversitesi, Beşiktaş — Istanbul</span></div>
         </div>
       </div>
@@ -1974,8 +1983,8 @@ function renderHeroSlides() {
               <div class="section-label mb-3 md:mb-5"><span data-en="${esc(s.tag_en)}" data-tr="${esc(s.tag_tr)}">${esc(s.tag_en)}</span></div>
               <h1 class="display text-[40px] sm:text-[64px] md:text-[120px] lg:text-[150px] text-cream leading-[0.88]"><span data-en="${esc(s.title_en)}" data-tr="${esc(s.title_tr)}">${esc(s.title_en)}</span></h1>
               <div class="flex items-center gap-3 mt-3 md:mt-5">
-                <span class="w-10 h-[1px] bg-orange"></span>
-                <div class="mono text-orange text-sm md:text-base" data-en="${esc(s.meta_en)}" data-tr="${esc(s.meta_tr)}">${esc(s.meta_en)}</div>
+                <span class="w-10 h-[1px] bg-red"></span>
+                <div class="mono text-red text-sm md:text-base" data-en="${esc(s.meta_en)}" data-tr="${esc(s.meta_tr)}">${esc(s.meta_en)}</div>
               </div>
               <p class="mt-3 md:mt-5 max-w-[540px] text-cream/85 text-sm md:text-lg leading-relaxed"><span data-en="${esc(s.desc_en)}" data-tr="${esc(s.desc_tr)}">${esc(s.desc_en)}</span></p>
               <div class="mt-4 md:mt-7"><a href="#events" onclick="showView('events'); return false;" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a></div>
@@ -2017,7 +2026,7 @@ function memberCardHTML(m, variant) {
           ${isExec ? `<span class="exec-pill" data-en="EXEC" data-tr="ÜST">EXEC</span>` : ''}
         </div>
         <div class="display text-[24px] text-cream leading-tight">${esc(m.name)}</div>
-        <div class="head text-orange uppercase text-sm tracking-[0.12em] mt-1" data-en="${esc(m.role_en)}" data-tr="${esc(m.role_tr)}">${esc(m.role_en)}</div>
+        <div class="head text-red uppercase text-sm tracking-[0.12em] mt-1" data-en="${esc(m.role_en)}" data-tr="${esc(m.role_tr)}">${esc(m.role_en)}</div>
         <div class="flex items-center gap-2 mt-5 pt-4 border-t border-line">
           <a href="${esc(m.instagram || '#')}" class="social-btn" aria-label="Instagram"><svg><use href="#i-ig"/></svg></a>
           <a href="${esc(m.linkedin  || '#')}" class="social-btn" aria-label="LinkedIn"><svg><use href="#i-li"/></svg></a>
@@ -2041,11 +2050,11 @@ function renderUpcoming() {
   mount.innerHTML = UPCOMING_EVENTS.map(e => `
     <article class="up-event p-5 md:p-7 grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-8 items-center">
       <div class="md:col-span-2 flex md:block gap-3 items-baseline">
-        <div class="display text-[48px] md:text-[56px] text-orange leading-none">${esc(e.date)}</div>
+        <div class="display text-[48px] md:text-[56px] text-red leading-none">${esc(e.date)}</div>
         <div class="mono text-xs text-steel tracking-[0.2em] md:mt-1">${esc(e.year)}</div>
       </div>
       <div class="md:col-span-7">
-        <div class="mono text-xs text-orange tracking-[0.22em] mb-1.5">/ ${esc(e.time)}</div>
+        <div class="mono text-xs text-red tracking-[0.22em] mb-1.5">/ ${esc(e.time)}</div>
         <div class="display text-[26px] md:text-[32px] text-cream leading-tight"><span data-en="${esc(e.title_en)}" data-tr="${esc(e.title_tr)}">${esc(e.title_en)}</span></div>
         <div class="head text-steel text-sm uppercase tracking-[0.14em] mt-1" data-en="${esc(e.loc_en)}" data-tr="${esc(e.loc_tr)}">${esc(e.loc_en)}</div>
         <p class="text-cream/70 mt-3 text-sm md:text-base max-w-[620px]"><span data-en="${esc(e.desc_en)}" data-tr="${esc(e.desc_tr)}">${esc(e.desc_en)}</span></p>
@@ -2097,7 +2106,7 @@ function pastEventHTML(e) {
       <div class="prize">
         ${prizeImg}
         <div class="p-4">
-          <div class="mono text-[10px] text-orange tracking-[0.22em] mb-2">PRIZE 0${i + 1}</div>
+          <div class="mono text-[10px] text-red tracking-[0.22em] mb-2">PRIZE 0${i + 1}</div>
           <h4 class="display text-[22px] text-cream leading-tight"><span data-en="${esc(p.title_en)}" data-tr="${esc(p.title_tr)}">${esc(p.title_en)}</span></h4>
           <p class="text-cream/70 text-sm mt-2 leading-snug"><span data-en="${esc(p.prize_en)}" data-tr="${esc(p.prize_tr)}">${esc(p.prize_en)}</span></p>
         </div>
@@ -2116,7 +2125,7 @@ function pastEventHTML(e) {
 
       <div class="mt-6 md:mt-8 grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-10">
         <div class="md:col-span-3">
-          <div class="mono text-orange tracking-[0.22em] text-sm" data-en="${esc(e.date_en)}" data-tr="${esc(e.date_tr)}">${esc(e.date_en)}</div>
+          <div class="mono text-red tracking-[0.22em] text-sm" data-en="${esc(e.date_en)}" data-tr="${esc(e.date_tr)}">${esc(e.date_en)}</div>
           <div class="mono text-steel text-xs tracking-[0.2em] mt-1" data-en="— EVENT" data-tr="— ETKİNLİK">— EVENT</div>
         </div>
         <div class="md:col-span-9">
@@ -2129,7 +2138,7 @@ function pastEventHTML(e) {
         <div class="flex items-end justify-between mb-6">
           <div>
             <div class="section-label mb-2"><span data-en="— Awards" data-tr="— Ödüller">— Awards</span></div>
-            <h4 class="display text-[32px] md:text-[44px] text-cream leading-none"><span data-en="PRIZES / <span class='text-orange'>ÖDÜLLER.</span>" data-tr="ÖDÜLLER / <span class='text-orange'>PRIZES.</span>">PRIZES / <span class='text-orange'>ÖDÜLLER.</span></span></h4>
+            <h4 class="display text-[32px] md:text-[44px] text-cream leading-none"><span data-en="PRIZES / <span class='text-red'>ÖDÜLLER.</span>" data-tr="ÖDÜLLER / <span class='text-red'>PRIZES.</span>">PRIZES / <span class='text-red'>ÖDÜLLER.</span></span></h4>
           </div>
           <div class="mono text-xs text-steel tracking-[0.2em] hidden sm:block" data-en="3 AWARDS" data-tr="3 ÖDÜL">3 AWARDS</div>
         </div>
