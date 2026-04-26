@@ -1195,12 +1195,7 @@
   .floating-cta {
     position: fixed;
     left: 50%;
-    /* Sit cleanly above iOS Safari's bottom chrome. env(safe-area-
-       inset-bottom) only covers the home indicator on notched
-       devices — not the URL bar / tabs row. Stack an explicit 28 px
-       buffer on top of the inset so the pill clears Safari/Chrome
-       iOS toolbars while still hugging the bottom on Android. */
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
+    bottom: max(18px, env(safe-area-inset-bottom));
     transform: translate(-50%, 150%);
     transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
     z-index: 80;
@@ -1223,8 +1218,7 @@
   }
   .floating-cta__btn {
     display: inline-flex; align-items: center; gap: 10px;
-    /* Slightly less left-padding to host the tach without bloating the pill */
-    padding: 9px 22px 9px 14px;
+    padding: 11px 24px;
     border-radius: 999px;
     background: rgb(var(--rgb-orange));
     color: #0B0B0D;
@@ -1233,7 +1227,6 @@
     border: 1px solid rgb(var(--rgb-orange));
     text-decoration: none;
     white-space: nowrap;
-    min-height: 44px;
     transition: background-color 200ms ease, filter 200ms ease, transform 200ms ease;
   }
   .floating-cta__btn:hover {
@@ -1244,36 +1237,6 @@
     transform: scale(0.97);
     filter: brightness(0.92);
     transition: transform 80ms ease-in, filter 80ms ease-in;
-  }
-  /* In-pill scroll tach — needle is rotated by JS via the lerp loop. */
-  .floating-cta__tach {
-    flex: 0 0 auto;
-    width: 30px; height: 30px;
-    pointer-events: none;
-  }
-  .fc-tach__bg,
-  .fc-tach__redline {
-    fill: none;
-    stroke-linecap: round;
-    stroke-width: 12;
-  }
-  .fc-tach__bg      { stroke: rgb(var(--rgb-cream) / 0.40); }
-  .fc-tach__redline { stroke: rgb(var(--rgb-cream) / 0.85); }
-  .fc-tach__needle {
-    stroke: rgb(var(--rgb-coal));
-    stroke-width: 9;
-    stroke-linecap: round;
-    transform-origin: 110px 120px;
-    transform: rotate(-78deg);
-  }
-  .fc-tach__hub-outer { fill: rgb(var(--rgb-coal)); }
-  .fc-tach__hub-inner { fill: rgb(var(--rgb-orange)); }
-  /* Thin vertical orange divider between the tach and the wordmark */
-  .floating-cta__divider {
-    flex: 0 0 1px;
-    width: 1px;
-    height: 22px;
-    background: rgb(var(--rgb-orange-deep) / 0.55);
   }
   @media (prefers-reduced-motion: reduce) {
     .floating-cta {
