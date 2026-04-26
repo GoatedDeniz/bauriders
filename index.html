@@ -1220,7 +1220,8 @@
   }
   .floating-cta__btn {
     display: inline-flex; align-items: center; gap: 10px;
-    padding: 11px 24px;
+    /* Slightly less left-padding to host the tach without bloating the pill */
+    padding: 9px 22px 9px 14px;
     border-radius: 999px;
     background: rgb(var(--rgb-orange));
     color: #0B0B0D;
@@ -1229,6 +1230,7 @@
     border: 1px solid rgb(var(--rgb-orange));
     text-decoration: none;
     white-space: nowrap;
+    min-height: 44px;
     transition: background-color 200ms ease, filter 200ms ease, transform 200ms ease;
   }
   .floating-cta__btn:hover {
@@ -1239,6 +1241,36 @@
     transform: scale(0.97);
     filter: brightness(0.92);
     transition: transform 80ms ease-in, filter 80ms ease-in;
+  }
+  /* In-pill scroll tach — needle is rotated by JS via the lerp loop. */
+  .floating-cta__tach {
+    flex: 0 0 auto;
+    width: 30px; height: 30px;
+    pointer-events: none;
+  }
+  .fc-tach__bg,
+  .fc-tach__redline {
+    fill: none;
+    stroke-linecap: round;
+    stroke-width: 12;
+  }
+  .fc-tach__bg      { stroke: rgb(var(--rgb-cream) / 0.40); }
+  .fc-tach__redline { stroke: rgb(var(--rgb-cream) / 0.85); }
+  .fc-tach__needle {
+    stroke: rgb(var(--rgb-coal));
+    stroke-width: 9;
+    stroke-linecap: round;
+    transform-origin: 110px 120px;
+    transform: rotate(-78deg);
+  }
+  .fc-tach__hub-outer { fill: rgb(var(--rgb-coal)); }
+  .fc-tach__hub-inner { fill: rgb(var(--rgb-orange)); }
+  /* Thin vertical orange divider between the tach and the wordmark */
+  .floating-cta__divider {
+    flex: 0 0 1px;
+    width: 1px;
+    height: 22px;
+    background: rgb(var(--rgb-orange-deep) / 0.55);
   }
   @media (prefers-reduced-motion: reduce) {
     .floating-cta {
@@ -1294,53 +1326,6 @@
   .pull-rev__text.armed { color: rgb(var(--rgb-orange)); }
   @media (prefers-reduced-motion: reduce) {
     .pull-rev { display: none !important; }
-  }
-
-  /* ============================================================ */
-  /*  MINI TACH — scroll progress indicator                        */
-  /* ------------------------------------------------------------ */
-  /*  Bottom-corner 44 px tach whose needle tracks document scroll */
-  /*  via a smooth lerp (0.18/frame). On mobile the corner flips  */
-  /*  to bottom-LEFT so it doesn't collide with the floating CTA. */
-  /*  Tappable: scrolls to top. Hidden during the intro and while */
-  /*  the mobile nav drawer is open. z-index sits below the CTA.  */
-  /* ============================================================ */
-  .mini-tach {
-    position: fixed;
-    /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
-       indicator's safe-area inset. Falls back to a large enough
-       fixed offset on browsers that don't expose env() values. */
-    bottom: max(110px, calc(env(safe-area-inset-bottom) + 96px));
-    right: 16px;
-    width: 44px; height: 44px;
-    z-index: 75;
-    background: rgb(var(--rgb-coal) / 0.65);
-    -webkit-backdrop-filter: blur(8px) saturate(1.1);
-            backdrop-filter: blur(8px) saturate(1.1);
-    border: 1px solid rgb(var(--rgb-line));
-    border-radius: 50%;
-    padding: 0;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    opacity: 0;
-    transition: opacity 250ms ease;
-    box-shadow: 0 6px 20px rgb(0 0 0 / 0.20),
-                0 0 14px rgb(var(--rgb-orange) / 0.20);
-    pointer-events: none;
-  }
-  @media (max-width: 767px) {
-    .mini-tach { right: auto; left: 16px; }
-  }
-  .mini-tach.is-visible { opacity: 0.85; pointer-events: auto; }
-  .mini-tach:hover { opacity: 1; }
-  .mini-tach svg { width: 30px; height: 30px; pointer-events: none; }
-  .mini-tach__needle {
-    transform-origin: 110px 120px;
-    transform: rotate(-78deg);
-    stroke-linecap: round;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .mini-tach { transition: opacity 80ms ease; }
   }
 
   /* ============================================================ */
@@ -3046,6 +3031,40 @@ function initFloatingCTA() {
   const hero        = document.getElementById('hero-carousel');
   const ctaSection  = document.querySelector('section.always-dark.bg-orange');
   const mobileNav   = document.getElementById('mobileNav');
+  const needle      = document.getElementById('floatingCTANeedle');
+  const reduced     = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /* In-pill tach state — needle lerps toward the scroll target. The
+     loop runs whenever the target moves so the needle is always at
+     the right position by the time the pill slides into view. */
+  const IDLE = -78, REDLINE = 78, RANGE = REDLINE - IDLE;
+  let needleTarget = IDLE, needleCurrent = IDLE;
+  let needleRAF = null;
+  function setNeedle(deg) {
+    if (needle) needle.style.transform = `rotate(${deg.toFixed(2)}deg)`;
+  }
+  function lerpTick() {
+    needleCurrent += (needleTarget - needleCurrent) * 0.18;
+    setNeedle(needleCurrent);
+    if (Math.abs(needleTarget - needleCurrent) > 0.1) {
+      needleRAF = requestAnimationFrame(lerpTick);
+    } else {
+      needleCurrent = needleTarget;
+      setNeedle(needleCurrent);
+      needleRAF = null;
+    }
+  }
+  function updateNeedle() {
+    const max = document.documentElement.scrollHeight - window.innerHeight;
+    const p   = max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
+    needleTarget = IDLE + p * RANGE;
+    if (reduced) {
+      needleCurrent = needleTarget;
+      setNeedle(needleCurrent);
+    } else if (!needleRAF) {
+      needleRAF = requestAnimationFrame(lerpTick);
+    }
+  }
 
   let pastHero = false;
   let inJoinSection = false;
@@ -3109,10 +3128,12 @@ function initFloatingCTA() {
         applyVisibility();
       }, 250);
 
+      updateNeedle();
       applyVisibility();
     });
   }, { passive: true });
 
+  updateNeedle();
   applyVisibility();
 }
 
@@ -3231,84 +3252,6 @@ function initPullToRev() {
   document.addEventListener('touchmove',   onMove,  { passive: false });
   document.addEventListener('touchend',    onEnd,   { passive: true });
   document.addEventListener('touchcancel', onEnd,   { passive: true });
-}
-
-/* ================================================================
- *  MINI TACH — scroll-progress indicator
- * ================================================================
- *  44 px tach in the bottom corner whose needle tracks document
- *  scroll progress (0 % → -78°, 100 % → +78°). Lerp factor 0.18 so
- *  the needle eases toward the target rather than snapping. Hidden
- *  while the intro overlay is in DOM or the mobile nav is open.
- *  Tap = smooth scrollTo(top).
- * ================================================================ */
-function initMiniTach() {
-  const tach = document.getElementById('miniTach');
-  if (!tach) return;
-  const needle = tach.querySelector('.mini-tach__needle');
-  const mobileNav = document.getElementById('mobileNav');
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  const IDLE = -78, REDLINE = 78, RANGE = REDLINE - IDLE;
-  let target = IDLE, current = IDLE;
-  let lerpRAF = null, scrollRAF = null, lastVisible = false;
-
-  function progress() {
-    const max = document.documentElement.scrollHeight - window.innerHeight;
-    return max > 0 ? Math.min(1, Math.max(0, window.scrollY / max)) : 0;
-  }
-  function shouldShow() {
-    if (window.scrollY < 100) return false;
-    if (document.getElementById('intro-overlay')) return false;
-    if (mobileNav && mobileNav.classList.contains('open')) return false;
-    return true;
-  }
-  function applyVisibility() {
-    const v = shouldShow();
-    if (v !== lastVisible) {
-      lastVisible = v;
-      tach.classList.toggle('is-visible', v);
-    }
-  }
-  function setNeedle(deg) { needle.style.transform = `rotate(${deg.toFixed(2)}deg)`; }
-  function lerpTick() {
-    current += (target - current) * 0.18;
-    setNeedle(current);
-    if (Math.abs(target - current) > 0.1) {
-      lerpRAF = requestAnimationFrame(lerpTick);
-    } else {
-      current = target;
-      setNeedle(current);
-      lerpRAF = null;
-    }
-  }
-  function onScroll() {
-    if (scrollRAF) return;
-    scrollRAF = requestAnimationFrame(() => {
-      scrollRAF = null;
-      target = IDLE + progress() * RANGE;
-      applyVisibility();
-      if (reduced) {
-        current = target;
-        setNeedle(current);
-      } else if (!lerpRAF) {
-        lerpRAF = requestAnimationFrame(lerpTick);
-      }
-    });
-  }
-
-  window.addEventListener('scroll', onScroll, { passive: true });
-  if (mobileNav) {
-    new MutationObserver(applyVisibility)
-      .observe(mobileNav, { attributes: true, attributeFilter: ['class'] });
-  }
-  new MutationObserver(applyVisibility).observe(document.body, { childList: true });
-
-  tach.addEventListener('click', () => {
-    window.scrollTo({ top: 0, behavior: reduced ? 'auto' : 'smooth' });
-  });
-
-  onScroll();
 }
 
 /* ================================================================
@@ -3674,7 +3617,6 @@ initCursorGlow();
 initTapFeedback();
 initFloatingCTA();
 initPullToRev();
-initMiniTach();
 initSectionLabels();
 initMemberSheet();
 
@@ -3687,9 +3629,21 @@ if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
 <div id="cursor-glow" aria-hidden="true"></div>
 
 <!-- Mobile-only floating "Join Us" CTA — show/hide controlled by initFloatingCTA().
-     Anchored bottom-center, respects iPhone safe-area, mirrors the top-nav button. -->
+     Anchored bottom-center, respects iPhone safe-area, mirrors the top-nav button.
+     The pill embeds a small tach on the left whose needle tracks scroll progress. -->
 <div class="floating-cta" id="floatingCTA" aria-hidden="true">
-  <a href="#join" class="floating-cta__btn" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
+  <a href="#join" class="floating-cta__btn">
+    <svg class="floating-cta__tach" viewBox="0 0 220 140" aria-hidden="true">
+      <path class="fc-tach__bg"      d="M 25 122 A 90 90 0 0 1 195 122"/>
+      <path class="fc-tach__redline" d="M 152 52 A 90 90 0 0 1 195 122"/>
+      <line class="fc-tach__needle" id="floatingCTANeedle"
+            x1="110" y1="120" x2="110" y2="55"/>
+      <circle class="fc-tach__hub-outer" cx="110" cy="120" r="14"/>
+      <circle class="fc-tach__hub-inner" cx="110" cy="120" r="6"/>
+    </svg>
+    <span class="floating-cta__divider" aria-hidden="true"></span>
+    <span class="floating-cta__text" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</span>
+  </a>
 </div>
 
 <!-- Sticky section label strip — mobile only. JS swaps the label text. -->
@@ -3719,16 +3673,7 @@ if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
   <div class="sheet__body" id="sheetBody"></div>
 </aside>
 
-<!-- Mini-tach scroll progress indicator — both desktop + mobile -->
-<button class="mini-tach" id="miniTach" type="button" aria-label="Scroll to top">
-  <svg viewBox="0 0 220 140" aria-hidden="true">
-    <path d="M 25 122 A 90 90 0 0 1 195 122" stroke="rgba(244,237,224,0.20)" stroke-width="8" fill="none" stroke-linecap="round"/>
-    <path d="M 152 52 A 90 90 0 0 1 195 122" stroke="#E35B1E" stroke-width="8" fill="none" stroke-linecap="round" opacity="0.7"/>
-    <line class="mini-tach__needle" x1="110" y1="120" x2="110" y2="55" stroke="#FF6B2C" stroke-width="6"/>
-    <circle cx="110" cy="120" r="10" fill="#0B0B0D" stroke="#E35B1E" stroke-width="3"/>
-    <circle cx="110" cy="120" r="4" fill="#FF6B2C"/>
-  </svg>
-</button>
+<!-- (mini-tach removed — its needle now lives inside the floating CTA pill above) -->
 
 </body>
 </html>
