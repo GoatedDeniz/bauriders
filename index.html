@@ -1197,10 +1197,10 @@
     left: 50%;
     /* Sit cleanly above iOS Safari's bottom chrome. env(safe-area-
        inset-bottom) only covers the home indicator on notched
-       devices — not the URL bar / tabs row. Stack an explicit 20 px
-       buffer on top of the inset; bump to 24-28 px if real-world
-       testing on Safari/Chrome iOS still feels tight. */
-    bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+       devices — not the URL bar / tabs row. Stack an explicit 28 px
+       buffer on top of the inset so the pill clears Safari/Chrome
+       iOS toolbars while still hugging the bottom on Android. */
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 28px);
     transform: translate(-50%, 150%);
     transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
     z-index: 80;
