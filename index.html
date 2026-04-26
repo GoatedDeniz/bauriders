@@ -971,23 +971,25 @@
   /* ============================================================ */
   #moto-easteregg {
     position: fixed; left: 50%; bottom: 0;
-    width: 64px; height: 160px;
+    width: 86px; height: 206px;
     z-index: 9990; pointer-events: none;
-    transform: translate(-50%, 240px);
+    /* Off-screen below — translateY 100% is the element's own height, so
+       it works at any size without recalculating numeric pixels. */
+    transform: translate(-50%, calc(100% + 30px));
     filter: drop-shadow(0 8px 18px rgba(0,0,0,0.4));
   }
   @media (min-width: 768px) {
-    #moto-easteregg { width: 88px; height: 220px; }
+    #moto-easteregg { width: 112px; height: 268px; }
   }
   /* Rides up onto the screen (rev pose) */
   #moto-easteregg.appearing {
-    transform: translate(-50%, -36px);
-    transition: transform .55s cubic-bezier(.2,.8,.3,1);
+    transform: translate(-50%, -38px);
+    transition: transform .5s cubic-bezier(.2,.8,.3,1);
   }
   /* Then accelerates off the top of the screen */
   #moto-easteregg.driving {
-    transform: translate(-50%, calc(-100vh - 240px));
-    transition: transform 1.5s cubic-bezier(.42,0,.45,1);
+    transform: translate(-50%, calc(-100vh - 100% - 40px));
+    transition: transform .9s cubic-bezier(.42,0,.45,1);
   }
 
   #moto-easteregg .moto-shake {
@@ -2336,8 +2338,16 @@ function toggleTheme() {
     if (attempts >= 3) trigger();
   }
   function isAtBottom() {
-    return window.scrollY + window.innerHeight >=
-           document.documentElement.scrollHeight - 2;
+    /* Defensive: address-bar resize, rubber-band, and various rendering
+       quirks all shift the precise bottom by a few px on mobile. Pull from
+       multiple sources and use a generous buffer. */
+    const docHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight
+    );
+    return window.scrollY + window.innerHeight >= docHeight - 24;
   }
 
   /* Desktop wheel — count downward wheel events while pinned at the bottom */
@@ -2348,20 +2358,27 @@ function toggleTheme() {
   }, { passive: true });
 
   /* Mobile touch — count upward swipes (= scroll-down attempts) at the bottom
-     that didn't actually move the page */
-  let tStartY = 0, tStartScroll = 0;
-  window.addEventListener('touchstart', (e) => {
-    if (active || e.touches.length !== 1) return;
+     that didn't actually move the page. We register on document (not window)
+     because some iOS Safari versions don't reliably bubble window-level
+     touches up from within fixed/scrolled regions. */
+  let tStartY = 0, tStartScroll = 0, tValid = false;
+  document.addEventListener('touchstart', (e) => {
+    if (active || e.touches.length !== 1) { tValid = false; return; }
     tStartY = e.touches[0].clientY;
     tStartScroll = window.scrollY;
-  }, { passive: true });
-  window.addEventListener('touchend', (e) => {
-    if (active) return;
+    tValid = true;
+  }, { passive: true, capture: true });
+  document.addEventListener('touchend', (e) => {
+    if (active || !tValid) return;
+    tValid = false;
     const dy = tStartY - e.changedTouches[0].clientY;
     const scrollDelta = window.scrollY - tStartScroll;
-    if (dy > 30 && isAtBottom() && scrollDelta < 5) nudge();
-    else if (dy < -30) reset();
-  }, { passive: true });
+    /* Looser thresholds for mobile: tiny finger flicks at the rubber-band
+       edge can produce small dy values, and the page may briefly move a
+       few pixels during the bounce. */
+    if (dy > 18 && isAtBottom() && scrollDelta < 12) nudge();
+    else if (dy < -25) reset();
+  }, { passive: true, capture: true });
 
   function smoothScrollToTop(duration) {
     const startY = window.scrollY;
@@ -2384,40 +2401,74 @@ function toggleTheme() {
     moto.setAttribute('aria-hidden', 'true');
     moto.innerHTML = `
       <div class="moto-shake">
-        <svg viewBox="0 0 80 200" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
+        <svg viewBox="0 0 100 240" preserveAspectRatio="xMidYMid meet" width="100%" height="100%">
           <!-- Headlight projection glow (sits behind the bike, brightens on rev) -->
-          <ellipse class="hl-glow" cx="40" cy="-12" rx="56" ry="42" fill="rgba(255,230,160,0.55)"/>
-          <!-- Front wheel -->
-          <ellipse cx="40" cy="26" rx="10" ry="18" fill="#181818"/>
-          <ellipse cx="40" cy="26" rx="4"  ry="10" fill="#3a3a3a"/>
-          <!-- Headlight -->
-          <circle  cx="40" cy="9"  r="5"  fill="#fff5c8" stroke="#888" stroke-width="0.5"/>
-          <!-- Handlebars -->
-          <rect x="12" y="42" width="56" height="4" rx="2" fill="#555"/>
-          <circle cx="12" cy="44" r="3.5" fill="#1a1a1a"/>
-          <circle cx="68" cy="44" r="3.5" fill="#1a1a1a"/>
-          <!-- Fuel tank (theme red) -->
-          <path d="M 28 48 L 52 48 L 54 80 L 26 80 Z" fill="rgb(var(--rgb-red))"/>
-          <path d="M 32 51 L 38 51 L 38 76 L 32 76 Z" fill="rgba(255,255,255,0.18)"/>
+          <ellipse class="hl-glow" cx="50" cy="-16" rx="68" ry="52" fill="rgba(255,230,160,0.55)"/>
+
+          <!-- Front fender -->
+          <path d="M 36 14 Q 50 10 64 14 L 64 30 Q 50 34 36 30 Z" fill="#1a1a1a"/>
+          <!-- Front wheel: chunky rectangular tire with visible tread blocks -->
+          <rect x="38" y="18" width="24" height="38" rx="6" fill="#0e0e0e" stroke="#222" stroke-width="0.6"/>
+          <rect x="40" y="22" width="20" height="3.5" fill="#2c2c2c"/>
+          <rect x="40" y="28" width="20" height="3.5" fill="#2c2c2c"/>
+          <rect x="40" y="34" width="20" height="3.5" fill="#2c2c2c"/>
+          <rect x="40" y="40" width="20" height="3.5" fill="#2c2c2c"/>
+          <rect x="40" y="46" width="20" height="3.5" fill="#2c2c2c"/>
+
+          <!-- Headlight cluster -->
+          <ellipse cx="50" cy="13" rx="9" ry="5.5" fill="#fff5c8" stroke="#666" stroke-width="0.7"/>
+          <circle  cx="50" cy="13" r="3" fill="#ffe066"/>
+
+          <!-- Handlebars + bar-end mirrors -->
+          <rect x="14" y="60" width="72" height="5" rx="2.5" fill="#5a5a5a"/>
+          <ellipse cx="14" cy="59" rx="6" ry="3.2" fill="#2a2a2a"/>
+          <ellipse cx="86" cy="59" rx="6" ry="3.2" fill="#2a2a2a"/>
+          <rect x="10"  y="60" width="6" height="6" rx="2" fill="#1a1a1a"/>
+          <rect x="84"  y="60" width="6" height="6" rx="2" fill="#1a1a1a"/>
+
+          <!-- Rider arms reaching forward to the grips (clear gloved silhouette) -->
+          <path d="M 28 72 Q 33 78 42 84" stroke="#0e0e0e" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+          <path d="M 72 72 Q 67 78 58 84" stroke="#0e0e0e" stroke-width="6.5" stroke-linecap="round" fill="none"/>
+
+          <!-- Fuel tank (theme red, larger and clearly the centerpiece) -->
+          <path d="M 32 68 Q 50 64 68 68 L 70 102 Q 50 106 30 102 Z" fill="rgb(var(--rgb-red))"/>
+          <ellipse cx="42" cy="80" rx="2.8" ry="11" fill="rgba(255,255,255,0.28)"/>
+
+          <!-- Rider helmet (round dome — the big "this is a person" cue) -->
+          <circle cx="50" cy="100" r="14" fill="#141414"/>
+          <ellipse cx="50" cy="97" rx="11" ry="7.5" fill="#0a0a0a"/>
+          <!-- Helmet visor — slight cool highlight to read as a face shield -->
+          <ellipse cx="50" cy="94" rx="8" ry="3" fill="rgba(120,180,220,0.4)"/>
+
+          <!-- Rider shoulders / jacket -->
+          <ellipse cx="50" cy="122" rx="22" ry="14" fill="#0a0a0a"/>
+
           <!-- Engine block with cooling fins -->
-          <rect x="23" y="82" width="34" height="24" rx="2" fill="#1a1a1a"/>
-          <line x1="25" y1="86"  x2="55" y2="86"  stroke="#3d3d3d" stroke-width="1.4"/>
-          <line x1="25" y1="90"  x2="55" y2="90"  stroke="#3d3d3d" stroke-width="1.4"/>
-          <line x1="25" y1="94"  x2="55" y2="94"  stroke="#3d3d3d" stroke-width="1.4"/>
-          <line x1="25" y1="98"  x2="55" y2="98"  stroke="#3d3d3d" stroke-width="1.4"/>
-          <line x1="25" y1="102" x2="55" y2="102" stroke="#3d3d3d" stroke-width="1.4"/>
-          <!-- Seat -->
-          <path d="M 31 108 L 49 108 L 51 138 L 29 138 Z" fill="#0a0a0a"/>
+          <rect x="22" y="134" width="56" height="24" rx="3" fill="#1a1a1a"/>
+          <line x1="24" y1="139" x2="76" y2="139" stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="24" y1="144" x2="76" y2="144" stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="24" y1="149" x2="76" y2="149" stroke="#3d3d3d" stroke-width="1.4"/>
+          <line x1="24" y1="154" x2="76" y2="154" stroke="#3d3d3d" stroke-width="1.4"/>
+
+          <!-- Seat / rear cowl -->
+          <path d="M 34 160 L 66 160 L 68 188 L 32 188 Z" fill="#0a0a0a"/>
+
           <!-- Rear fender -->
-          <ellipse cx="40" cy="142" rx="15" ry="3" fill="#222"/>
-          <!-- Rear wheel -->
-          <ellipse cx="40" cy="164" rx="12" ry="22" fill="#181818"/>
-          <ellipse cx="40" cy="164" rx="5"  ry="13" fill="#3a3a3a"/>
-          <!-- Exhaust pipes -->
-          <rect x="19" y="150" width="4" height="40" rx="2" fill="#909090"/>
-          <rect x="57" y="150" width="4" height="40" rx="2" fill="#909090"/>
-          <ellipse cx="21" cy="188" rx="2.5" ry="1.5" fill="#1a1a1a"/>
-          <ellipse cx="59" cy="188" rx="2.5" ry="1.5" fill="#1a1a1a"/>
+          <ellipse cx="50" cy="194" rx="22" ry="4" fill="#1a1a1a"/>
+
+          <!-- Rear wheel: bigger than front, same chunky tread look -->
+          <rect x="36" y="198" width="28" height="42" rx="6" fill="#0e0e0e" stroke="#222" stroke-width="0.6"/>
+          <rect x="38" y="202" width="24" height="3.5" fill="#2c2c2c"/>
+          <rect x="38" y="209" width="24" height="3.5" fill="#2c2c2c"/>
+          <rect x="38" y="216" width="24" height="3.5" fill="#2c2c2c"/>
+          <rect x="38" y="223" width="24" height="3.5" fill="#2c2c2c"/>
+          <rect x="38" y="230" width="24" height="3.5" fill="#2c2c2c"/>
+
+          <!-- Twin chrome exhaust pipes -->
+          <rect x="20" y="194" width="5" height="46" rx="2.5" fill="#a8a8a8"/>
+          <rect x="75" y="194" width="5" height="46" rx="2.5" fill="#a8a8a8"/>
+          <ellipse cx="22.5" cy="238" rx="3" ry="2" fill="#1a1a1a"/>
+          <ellipse cx="77.5" cy="238" rx="3" ry="2" fill="#1a1a1a"/>
         </svg>
         <span class="exhaust-puff"></span>
       </div>
@@ -2428,21 +2479,21 @@ function toggleTheme() {
        transition into the appearing state. */
     void moto.offsetHeight;
 
-    /* Phase 1 — rev in place */
+    /* Phase 1 — rev in place (visible 1 second so users can register what it is) */
     moto.classList.add('appearing', 'revving');
 
     /* Phase 2 — drive up + scroll to top, synced */
     setTimeout(() => {
       moto.classList.remove('revving');
       moto.classList.add('driving');
-      smoothScrollToTop(1500);
-    }, 1100);
+      smoothScrollToTop(900);
+    }, 1000);
 
     /* Cleanup once the bike has driven off the top */
     setTimeout(() => {
       moto.remove();
       active = false;
-    }, 1100 + 1700);
+    }, 1000 + 950);
   }
 })();
 
