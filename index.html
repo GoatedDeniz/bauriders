@@ -1195,7 +1195,9 @@
   .floating-cta {
     position: fixed;
     left: 50%;
-    bottom: max(18px, env(safe-area-inset-bottom));
+    /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
+       indicator's safe-area inset. Matches the mini-tach offset. */
+    bottom: max(72px, calc(env(safe-area-inset-bottom) + 56px));
     transform: translate(-50%, 150%);
     transition: transform 280ms cubic-bezier(.4, 0, .2, 1);
     z-index: 80;
@@ -1305,7 +1307,10 @@
   /* ============================================================ */
   .mini-tach {
     position: fixed;
-    bottom: max(16px, env(safe-area-inset-bottom));
+    /* Clear iOS Safari's bottom toolbar (~50 px) on top of the home
+       indicator's safe-area inset. Falls back to a large enough
+       fixed offset on browsers that don't expose env() values. */
+    bottom: max(72px, calc(env(safe-area-inset-bottom) + 56px));
     right: 16px;
     width: 44px; height: 44px;
     z-index: 75;
