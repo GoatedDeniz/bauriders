@@ -157,6 +157,7 @@
     opacity: var(--grain-opacity);
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
     mix-blend-mode: var(--grain-blend);
+    transition: opacity 0.5s ease;
   }
   /* Motorcycle tire-track trails — multiple curves crossing the viewport
      in different directions, with chunky dashed strokes that read as tread
@@ -169,6 +170,15 @@
     background-repeat: no-repeat;
     background-size: cover;
     background-position: center;
+    transition: opacity 0.5s ease;
+  }
+  /* Easter-egg drive: hide the heaviest fixed overlays so they don't repaint
+     on every scroll frame. Faster fade-out (drive starts smooth quickly),
+     slower fade-in afterward (gentle return). */
+  html.moto-driving body::before,
+  html.moto-driving body::after {
+    opacity: 0;
+    transition: opacity 0.18s ease;
   }
   .grid-bg {
     background-image:
@@ -977,6 +987,10 @@
        it works at any size without recalculating numeric pixels. */
     transform: translate(-50%, calc(100% + 30px));
     filter: drop-shadow(0 8px 18px rgba(0,0,0,0.4));
+    /* Pin to its own GPU layer so the drive transform never invalidates
+       the page's paint tree — cheap composite-only animation. */
+    will-change: transform;
+    backface-visibility: hidden;
   }
   @media (min-width: 768px) {
     #moto-easteregg { width: 112px; height: 268px; }
@@ -2394,12 +2408,24 @@ function toggleTheme() {
 
   function smoothScrollToTop(duration) {
     const startY = window.scrollY;
+    if (startY <= 0) return;
     const startTime = performance.now();
+    let lastY = startY;
     function step(now) {
       const t = Math.min(1, (now - startTime) / duration);
-      const ease = 1 - Math.pow(1 - t, 3); /* easeOutCubic */
-      window.scrollTo(0, startY * (1 - ease));
+      /* easeOutCubic — gentle deceleration into 0 keeps the last frames
+         from snapping, which on mobile would feel like a "stuck" hitch. */
+      const ease = 1 - Math.pow(1 - t, 3);
+      const y = Math.round(startY * (1 - ease));
+      /* Avoid redundant scrollTo() calls on frames where the int value
+         didn't move — each call is a layout invalidation, and on iOS
+         repeated identical calls can cause perceptible jank. */
+      if (y !== lastY) {
+        window.scrollTo(0, y);
+        lastY = y;
+      }
       if (t < 1) requestAnimationFrame(step);
+      else window.scrollTo(0, 0); /* guarantee we land exactly at top */
     }
     requestAnimationFrame(step);
   }
@@ -2494,8 +2520,12 @@ function toggleTheme() {
     /* Phase 1 — rev in place (visible 1 second so users can register what it is) */
     moto.classList.add('appearing', 'revving');
 
-    /* Phase 2 — drive up + scroll to top, synced */
+    /* Phase 2 — drive up + scroll to top, synced. Tagging <html> with
+       `moto-driving` fades out the heaviest fixed overlays (grain + tire
+       tracks) so the rAF scroll doesn't have to repaint them every frame —
+       this is what causes the mobile stutter. */
     setTimeout(() => {
+      document.documentElement.classList.add('moto-driving');
       moto.classList.remove('revving');
       moto.classList.add('driving');
       smoothScrollToTop(900);
@@ -2503,6 +2533,7 @@ function toggleTheme() {
 
     /* Cleanup once the bike has driven off the top */
     setTimeout(() => {
+      document.documentElement.classList.remove('moto-driving');
       moto.remove();
       active = false;
     }, 1000 + 950);
