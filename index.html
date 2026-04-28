@@ -1069,6 +1069,526 @@
   @media (prefers-reduced-motion: reduce) {
     #moto-easteregg { display: none; }
   }
+
+  /* ============================================================ */
+  /*  HELMET CHECK MINIGAME                                       */
+  /* ============================================================ */
+  #helmet-game {
+    position: fixed; inset: 0; z-index: 9998;
+    background: radial-gradient(ellipse at center, rgb(var(--rgb-panel)) 0%, rgb(var(--rgb-coal)) 60%, #050505 100%);
+    color: rgb(var(--rgb-cream));
+    display: none; flex-direction: column;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none; -webkit-user-select: none;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    opacity: 0; transition: opacity .35s ease;
+  }
+  #helmet-game.open { display: flex; opacity: 1; }
+  #helmet-game.fading { opacity: 0; }
+
+  /* Background layers — subtle red glow + asphalt at the bottom */
+  .hg-bg-glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(ellipse 70% 50% at 50% 0%, rgb(var(--rgb-red) / 0.12) 0%, transparent 60%),
+      radial-gradient(ellipse 80% 40% at 50% 100%, rgb(var(--rgb-red) / 0.08) 0%, transparent 70%);
+  }
+  .hg-bg-grain {
+    position: absolute; inset: 0; pointer-events: none;
+    opacity: 0.04; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  .hg-bg-road {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    height: 38%; pointer-events: none; opacity: 0.5;
+  }
+
+  /* Lives / score / speedometer — used inside the curb HUD */
+  .hg-lives { display: inline-flex; gap: 6px; align-items: center; }
+  .hg-life {
+    width: 22px; height: 22px;
+    color: rgb(var(--rgb-red));
+    transition: opacity .25s ease, color .25s ease, transform .25s ease;
+  }
+  @media (min-width: 768px) { .hg-life { width: 26px; height: 26px; } }
+  .hg-life.lost { opacity: 0.18; color: rgb(var(--rgb-steel)); transform: scale(0.85); }
+  .hg-score-wrap {
+    font-family: 'JetBrains Mono', monospace;
+    color: rgb(var(--rgb-cream)); text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .hg-score-label {
+    font-size: 10px; letter-spacing: 0.3em; color: rgb(var(--rgb-steel));
+  }
+  .hg-score {
+    font-size: 22px; font-weight: 700; letter-spacing: 0.06em; line-height: 1;
+  }
+  @media (min-width: 768px) { .hg-score { font-size: 28px; } }
+  .hg-score.bump { animation: hgScoreBump 0.35s ease; }
+  @keyframes hgScoreBump {
+    0% { transform: scale(1); color: rgb(var(--rgb-cream)); }
+    40% { transform: scale(1.18); color: rgb(var(--rgb-red-bright)); }
+    100% { transform: scale(1); color: rgb(var(--rgb-cream)); }
+  }
+  .hg-wave-bar {
+    width: 88px; height: 2px; background: rgb(var(--rgb-cream) / 0.12);
+    position: relative; overflow: hidden;
+  }
+  @media (min-width: 768px) { .hg-wave-bar { width: 130px; } }
+  .hg-wave-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 0;
+    background: rgb(var(--rgb-red) / 0.7);
+    transition: width 0.25s ease;
+  }
+  .hg-rpm-wrap { width: 110px; height: 70px; position: relative; }
+  @media (min-width: 768px) { .hg-rpm-wrap { width: 140px; height: 88px; } }
+  .hg-rpm-needle {
+    transform-origin: 110px 120px;
+    transform: rotate(-78deg);
+    transition: transform 0.18s linear;
+  }
+  .hg-rpm-fill {
+    transition: stroke-dashoffset 0.18s linear, stroke 0.2s ease;
+  }
+  .hg-close {
+    position: absolute; top: 14px; right: 14px; z-index: 50;
+    width: 36px; height: 36px;
+    background: rgb(var(--rgb-coal) / 0.7); border: 1px solid rgb(var(--rgb-line));
+    color: rgb(var(--rgb-cream));
+    display: inline-flex; align-items: center; justify-content: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 14px;
+    cursor: pointer; transition: all .2s ease;
+  }
+  .hg-close:hover { border-color: rgb(var(--rgb-red)); color: rgb(var(--rgb-red)); }
+
+  /* Stage holds the screens */
+  .hg-stage {
+    position: relative; z-index: 5;
+    flex: 1 1 auto; display: flex; align-items: center; justify-content: center;
+    padding: 16px; overflow: hidden;
+  }
+  .hg-screen {
+    width: 100%; max-width: 1100px;
+    display: none; flex-direction: column; align-items: center; justify-content: center;
+    gap: 18px;
+  }
+  .hg-screen.active { display: flex; }
+
+  /* TITLE SCREEN */
+  .hg-title-headline {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(54px, 12vw, 130px);
+    line-height: 0.88; letter-spacing: 0.02em; text-align: center;
+    color: rgb(var(--rgb-cream));
+    text-shadow: 0 0 24px rgb(var(--rgb-red) / 0.35);
+  }
+  .hg-title-headline .accent { color: rgb(var(--rgb-red)); }
+  .hg-title-sub {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.3em;
+    color: rgb(var(--rgb-steel)); text-transform: uppercase; text-align: center;
+  }
+  .hg-form {
+    margin-top: 12px; width: 100%; max-width: 380px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .hg-input {
+    background: rgb(var(--rgb-coal) / 0.7);
+    border: 1px solid rgb(var(--rgb-line));
+    color: rgb(var(--rgb-cream));
+    font-family: 'Barlow', sans-serif; font-size: 16px;
+    padding: 12px 14px; outline: none;
+    text-align: center; letter-spacing: 0.04em;
+    transition: border-color .2s ease;
+  }
+  .hg-input:focus { border-color: rgb(var(--rgb-red)); }
+  .hg-input::placeholder { color: rgb(var(--rgb-steel) / 0.7); }
+  .hg-error {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: rgb(var(--rgb-red)); letter-spacing: 0.1em; text-align: center;
+    min-height: 14px;
+  }
+  .hg-start {
+    margin-top: 4px;
+    background: rgb(var(--rgb-red)); color: rgb(var(--rgb-coal));
+    font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 0.1em;
+    padding: 14px 26px; border: 1px solid rgb(var(--rgb-red));
+    cursor: pointer; transition: all .2s ease;
+  }
+  .hg-start:hover:not(:disabled) {
+    background: rgb(var(--rgb-red-bright));
+    transform: translate(-2px, -2px);
+    box-shadow: 4px 4px 0 rgb(var(--rgb-red-deep));
+  }
+  .hg-start:disabled { opacity: 0.4; cursor: not-allowed; }
+  .hg-change-name {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    color: rgb(var(--rgb-steel)); letter-spacing: 0.16em;
+    background: none; border: none; cursor: pointer; padding: 6px;
+    text-align: center; transition: color .2s ease;
+  }
+  .hg-change-name:hover { color: rgb(var(--rgb-cream)); }
+
+  /* COUNTDOWN */
+  .hg-countdown {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(120px, 30vw, 280px);
+    line-height: 1; color: rgb(var(--rgb-red));
+    text-shadow: 0 0 40px rgb(var(--rgb-red) / 0.6);
+    animation: hgCountPulse 0.5s ease forwards;
+  }
+  @keyframes hgCountPulse {
+    0% { opacity: 0; transform: scale(0.6); }
+    20% { opacity: 1; transform: scale(1.15); }
+    70% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.95); }
+  }
+
+  /* =================================================== */
+  /*  ROUND PLAY — 2D side-scroller scene                  */
+  /* =================================================== */
+  .hg-screen.hg-screen-play {
+    /* Override base screen layout — fill the stage */
+    display: none;
+    width: 100%; max-width: none;
+    flex-direction: column; align-items: stretch; justify-content: stretch;
+    gap: 0; height: 100%;
+  }
+  .hg-screen.hg-screen-play.active { display: flex; }
+  .hg-stage.hg-stage-playing { padding: 0; }
+
+  .hg-scene {
+    position: relative; flex: 1 1 auto;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: linear-gradient(180deg,
+      rgb(var(--rgb-panel)) 0%,
+      rgb(var(--rgb-coal)) 24%,
+      rgb(var(--rgb-coal)) 100%);
+  }
+
+  /* SKY (top ~18%) — kept slim so the road dominates */
+  .hg-sky {
+    position: absolute; left: 0; right: 0; top: 0; height: 18%;
+    background: linear-gradient(180deg,
+      rgb(var(--rgb-panel)) 0%,
+      rgb(var(--rgb-coal)) 100%);
+    overflow: hidden;
+  }
+  .hg-sky::after {
+    /* Faint city skyline silhouette */
+    content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 75%;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1600 120' preserveAspectRatio='xMidYMax slice'><path fill='%238A8A90' fill-opacity='0.22' d='M0 120 V70 h60 v-12 h28 v-24 h36 v36 h22 v-18 h40 v-22 h26 v40 h32 v-10 h44 v22 h28 v-30 h36 v18 h26 v-26 h32 v32 h28 v-12 h44 v-22 h28 v34 h32 v-18 h36 v22 h28 v-30 h40 v18 h28 v-12 h36 v22 h32 v-26 h44 v32 h28 v-12 h36 v18 h26 v-22 h44 v26 h28 v-12 h36 v22 h44 v-30 h32 v22 h28 v-12 h60 V120 z'/></svg>");
+    background-repeat: no-repeat;
+    background-size: cover;
+    background-position: bottom;
+    opacity: 0.6;
+  }
+
+  /* ROAD (middle ~54%) — bigger so riders fill the frame */
+  .hg-road {
+    position: absolute; left: 0; right: 0; top: 18%; height: 54%;
+    background: linear-gradient(180deg,
+      rgb(var(--rgb-panel2)) 0%,
+      rgb(var(--rgb-panel)) 50%,
+      rgb(var(--rgb-panel2)) 100%);
+    overflow: hidden;
+  }
+  /* Lane separators — three horizontal lines (top, mid, bottom edge) */
+  .hg-road::before, .hg-road::after {
+    content: ''; position: absolute; left: 0; right: 0;
+    height: 1px; background: rgb(var(--rgb-cream) / 0.18);
+    pointer-events: none;
+  }
+  .hg-road::before { top: 4px; }
+  .hg-road::after  { bottom: 4px; }
+  .hg-road-line {
+    position: absolute; left: 0; top: 50%; right: 0; height: 4px;
+    transform: translateY(-50%);
+    background-image: repeating-linear-gradient(
+      90deg,
+      rgb(var(--rgb-cream) / 0.6) 0 28px,
+      transparent 28px 64px);
+    /* leftward scroll — animation-duration is set inline by JS based on speed */
+    animation: hgRoadScroll 1.2s linear infinite;
+    will-change: background-position;
+  }
+  .hg-road.paused .hg-road-line { animation-play-state: paused; }
+  @keyframes hgRoadScroll {
+    from { background-position-x: 0; }
+    to   { background-position-x: -64px; }
+  }
+
+  /* PLAYFIELD — overlays the road, holds rider DOM elements */
+  .hg-playfield {
+    position: absolute; left: 0; right: 0; top: 18%; height: 54%;
+    pointer-events: none; /* riders re-enable this on themselves */
+  }
+
+  /* CURB / SHOULDER (bottom ~28%) — holds the HUD */
+  .hg-curb {
+    position: absolute; left: 0; right: 0; top: 72%; bottom: 0;
+    background:
+      linear-gradient(180deg,
+        rgb(var(--rgb-coal)) 0%,
+        rgb(var(--rgb-coal)) 100%),
+      repeating-linear-gradient(135deg, var(--pattern-1) 0 5px, var(--pattern-2) 5px 10px);
+    background-blend-mode: normal, multiply;
+    border-top: 1px solid rgb(var(--rgb-red) / 0.4);
+  }
+  .hg-curb::before {
+    content: ''; position: absolute; inset: 0;
+    opacity: 0.05; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 1 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+
+  /* HUD positioned over the curb */
+  .hg-curb-hud {
+    position: absolute; left: 0; right: 0; top: 72%; bottom: 0;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    align-items: center; gap: 8px;
+    padding: 10px 14px;
+    z-index: 6;
+  }
+  @media (min-width: 768px) { .hg-curb-hud { padding: 14px 24px; } }
+  .hg-curb-hud > .hg-lives { justify-self: start; }
+  .hg-curb-hud > .hg-score-wrap { justify-self: center; }
+  .hg-curb-hud > .hg-speed-wrap { justify-self: end; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+  .hg-round-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    letter-spacing: 0.3em; color: rgb(var(--rgb-steel));
+    text-transform: uppercase;
+  }
+
+  /* RIDER (absolutely positioned within .hg-playfield) */
+  .hg-rider {
+    position: absolute;
+    width: 96px; height: 72px;
+    /* Tap-target padding: invisible 10px ring around the SVG so 44×44 is comfortable */
+    padding: 10px;
+    background: transparent; border: 0; outline: none;
+    cursor: pointer; pointer-events: auto;
+    transform: translate3d(0,0,0);
+    will-change: transform;
+    -webkit-tap-highlight-color: transparent;
+    transition: opacity 0.25s ease;
+  }
+  @media (min-width: 768px) { .hg-rider { width: 168px; height: 122px; } }
+  @media (min-width: 1280px) { .hg-rider { width: 196px; height: 142px; } }
+  .hg-rider svg {
+    width: 100%; height: 100%; display: block; overflow: visible;
+    color: rgb(var(--rgb-cream));
+    filter: drop-shadow(0 4px 6px rgb(var(--rgb-coal) / 0.6));
+  }
+  .hg-rider .hg-bob {
+    /* Subtle vertical bob to imply road bumps */
+    animation: hgBob 0.42s ease-in-out infinite alternate;
+    transform-origin: center;
+  }
+  .hg-rider.paused .hg-bob,
+  .hg-rider.paused .hg-wheel { animation-play-state: paused; }
+  @keyframes hgBob {
+    from { transform: translateY(-1px); }
+    to   { transform: translateY(2px); }
+  }
+  .hg-wheel {
+    transform-box: fill-box; transform-origin: center;
+    animation: hgWheelSpin 0.32s linear infinite;
+  }
+  @keyframes hgWheelSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  /* Tap states */
+  .hg-rider.tagged-correct {
+    pointer-events: none;
+    animation: hgRiderFade 0.28s ease forwards;
+  }
+  /* Stop wheels + bob the moment the rider is tagged (the screech) */
+  .hg-rider.tagged-correct .hg-bob,
+  .hg-rider.tagged-correct .hg-wheel { animation: none; }
+  /* Fade-only — preserves the rider's inline translate3d position. */
+  @keyframes hgRiderFade {
+    0%   { opacity: 1; }
+    50%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+  .hg-rider.tagged-correct svg { transition: filter 0.18s ease; filter: drop-shadow(0 0 12px rgb(80 200 120 / 0.6)); }
+  .hg-check {
+    position: absolute; left: 50%; top: -8px;
+    transform: translate(-50%, -100%);
+    font-family: 'Bebas Neue', sans-serif; font-size: 36px; line-height: 1;
+    color: rgb(120 230 150);
+    text-shadow: 0 0 12px rgb(80 200 120 / 0.8);
+    pointer-events: none;
+    animation: hgCheckPop 0.35s ease forwards;
+  }
+  @keyframes hgCheckPop {
+    0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    35%  { opacity: 1; transform: translate(-50%, -110%) scale(1.15); }
+    100% { opacity: 1; transform: translate(-50%, -110%) scale(1); }
+  }
+  .hg-score-float {
+    position: absolute; left: 50%; top: 0;
+    transform: translate(-50%, -50%);
+    font-family: 'JetBrains Mono', monospace; font-weight: 700;
+    font-size: 16px; color: rgb(var(--rgb-red-bright));
+    text-shadow: 0 0 10px rgb(var(--rgb-red) / 0.6);
+    pointer-events: none; white-space: nowrap;
+    animation: hgFloatUp 0.7s cubic-bezier(.25,.8,.25,1) forwards;
+  }
+  @keyframes hgFloatUp {
+    0%   { opacity: 0; transform: translate(-50%, -10%); }
+    20%  { opacity: 1; }
+    100% { opacity: 0; transform: translate(-50%, -180%); }
+  }
+  .hg-rider.wrong-flash svg { animation: hgWrongFlash 0.45s ease; }
+  @keyframes hgWrongFlash {
+    0%, 100% { color: rgb(var(--rgb-cream)); filter: drop-shadow(0 4px 6px rgb(var(--rgb-coal) / 0.6)); }
+    20%, 60% { color: rgb(var(--rgb-red-bright)); filter: drop-shadow(0 0 12px rgb(var(--rgb-red) / 0.9)); }
+  }
+
+  /* Edge pulse on the whole scene when wrong-tap happens */
+  .hg-edge-pulse {
+    position: absolute; inset: 0; pointer-events: none; z-index: 7;
+    box-shadow: inset 0 0 0 0 rgb(var(--rgb-red));
+    opacity: 0;
+  }
+  .hg-edge-pulse.active { animation: hgEdgePulse 0.5s ease; }
+  @keyframes hgEdgePulse {
+    0%   { opacity: 0; box-shadow: inset 0 0 0 0 rgb(var(--rgb-red) / 0.0); }
+    35%  { opacity: 1; box-shadow: inset 0 0 60px 8px rgb(var(--rgb-red) / 0.7); }
+    100% { opacity: 0; box-shadow: inset 0 0 0 0 rgb(var(--rgb-red) / 0.0); }
+  }
+
+  /* Stamp overlay */
+  .hg-stamp {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -50%) rotate(-6deg);
+    z-index: 30; pointer-events: none;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(36px, 8vw, 80px); letter-spacing: 0.06em;
+    color: rgb(var(--rgb-red));
+    border: 6px solid rgb(var(--rgb-red));
+    padding: 12px 24px; text-align: center;
+    text-shadow: 0 0 20px rgb(var(--rgb-red) / 0.8);
+    box-shadow: 0 0 40px rgb(var(--rgb-red) / 0.5);
+    background: rgb(var(--rgb-coal) / 0.85);
+    opacity: 0;
+  }
+  .hg-stamp.show { animation: hgStampPulse 0.9s ease forwards; }
+  @keyframes hgStampPulse {
+    0% { opacity: 0; transform: translate(-50%, -50%) rotate(-6deg) scale(1.6); }
+    25% { opacity: 1; transform: translate(-50%, -50%) rotate(-6deg) scale(0.95); }
+    50% { transform: translate(-50%, -50%) rotate(-6deg) scale(1.05); }
+    100% { opacity: 0; transform: translate(-50%, -50%) rotate(-6deg) scale(1); }
+  }
+
+  /* Round transition flash */
+  .hg-round-clear {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(48px, 10vw, 110px);
+    color: rgb(var(--rgb-cream)); text-align: center; letter-spacing: 0.04em;
+    text-shadow: 0 0 30px rgb(var(--rgb-red) / 0.6);
+  }
+  .hg-round-clear .bonus { color: rgb(var(--rgb-red)); display: block; font-size: 0.55em; margin-top: 8px; }
+
+  /* GAME OVER */
+  .hg-over {
+    width: 100%; max-width: 720px;
+    display: flex; flex-direction: column; align-items: center; gap: 18px;
+    padding: 8px;
+  }
+  .hg-over-label {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.3em; color: rgb(var(--rgb-steel));
+  }
+  .hg-over-score {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(72px, 16vw, 160px); line-height: 1;
+    color: rgb(var(--rgb-red));
+    text-shadow: 0 0 30px rgb(var(--rgb-red) / 0.5);
+  }
+  .hg-over-rank {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(28px, 5vw, 44px); letter-spacing: 0.08em;
+    color: rgb(var(--rgb-cream));
+  }
+  .hg-leaderboard {
+    width: 100%; max-width: 480px;
+    background: rgb(var(--rgb-coal) / 0.6);
+    border: 1px solid rgb(var(--rgb-line));
+    padding: 14px 16px;
+    margin-top: 4px;
+  }
+  .hg-leaderboard-title {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    letter-spacing: 0.22em; color: rgb(var(--rgb-steel));
+    text-align: center; margin-bottom: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .hg-spinner {
+    width: 10px; height: 10px;
+    border: 1.5px solid rgb(var(--rgb-line));
+    border-top-color: rgb(var(--rgb-red));
+    border-radius: 50%;
+    animation: hgSpin 0.7s linear infinite;
+  }
+  @keyframes hgSpin { to { transform: rotate(360deg); } }
+  .hg-lb-row {
+    display: grid; grid-template-columns: 36px 1fr auto;
+    gap: 10px; align-items: center;
+    padding: 7px 6px; font-family: 'Barlow Condensed', sans-serif;
+    font-size: 15px; color: rgb(var(--rgb-cream) / 0.85);
+    border-top: 1px dashed rgb(var(--rgb-line));
+  }
+  .hg-lb-row:first-of-type { border-top: none; }
+  .hg-lb-row .hg-lb-rank {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em;
+    color: rgb(var(--rgb-steel));
+  }
+  .hg-lb-row .hg-lb-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; font-weight: 700; color: rgb(var(--rgb-cream));
+  }
+  .hg-lb-row.you, .hg-lb-row.is-you {
+    color: rgb(var(--rgb-red)); border-left: 2px solid rgb(var(--rgb-red));
+    background: rgb(var(--rgb-red) / 0.08);
+  }
+  .hg-lb-row.you .hg-lb-rank,
+  .hg-lb-row.is-you .hg-lb-rank,
+  .hg-lb-row.you .hg-lb-score,
+  .hg-lb-row.is-you .hg-lb-score { color: rgb(var(--rgb-red-bright)); }
+  .hg-lb-offline {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    color: rgb(var(--rgb-steel)); text-align: center; padding: 10px 6px;
+  }
+  .hg-actions {
+    display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+    margin-top: 6px;
+  }
+  .hg-motto {
+    margin-top: 18px; font-family: 'Bebas Neue', sans-serif;
+    font-size: 22px; letter-spacing: 0.16em; color: rgb(var(--rgb-cream));
+    text-align: center;
+    padding-top: 14px; border-top: 1px solid rgb(var(--rgb-line));
+    width: 100%;
+  }
+  .hg-motto .accent { color: rgb(var(--rgb-red)); }
+  .hg-join {
+    margin-top: 8px; font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing: 0.22em;
+    color: rgb(var(--rgb-red)); text-decoration: none;
+    background: none; border: none; cursor: pointer; padding: 6px;
+  }
+  .hg-join:hover { color: rgb(var(--rgb-red-bright)); }
+
+  body.hg-locked { overflow: hidden !important; }
 </style>
 </head>
 <body class="relative">
@@ -1283,8 +1803,8 @@
       <a href="#home"   class="nav-link nav-home active"  onclick="showView('home'); return false;"   data-en="Home"     data-tr="Ana Sayfa">Home</a>
       <a href="#about"  class="nav-link nav-about"        onclick="showView('about'); return false;"  data-en="About"    data-tr="Hakkımızda">About</a>
       <a href="#events" class="nav-link nav-events"       onclick="showView('events'); return false;" data-en="Events"   data-tr="Etkinlikler">Events</a>
-      <a href="#tuesdays" class="nav-link"                                                             data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
-      <a href="#news"   class="nav-link"                                                               data-en="News"     data-tr="Haberler">News</a>
+      <a href="#tuesdays" class="nav-link" onclick="goAnchor('tuesdays'); return false;"               data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
+      <a href="#news"   class="nav-link" onclick="goAnchor('news'); return false;"                     data-en="News"     data-tr="Haberler">News</a>
     </nav>
     <div class="flex items-center gap-3 md:gap-4">
       <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
@@ -1296,7 +1816,7 @@
         <span class="lang-sep">/</span>
         <button class="lang-btn lang-tr" onclick="setLang('tr')">TR</button>
       </div>
-      <a href="#join" class="btn-primary hidden md:inline-flex" data-en="Join Us" data-tr="Bize Katıl">Join Us</a>
+      <a href="#join" onclick="goAnchor('join'); return false;" class="btn-primary hidden md:inline-flex" data-en="Join Us" data-tr="Bize Katıl">Join Us</a>
       <button class="lg:hidden text-cream p-2" onclick="toggleMobile()" aria-label="Menu">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="7" x2="21" y2="7"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="17" x2="21" y2="17"/></svg>
       </button>
@@ -1312,9 +1832,9 @@
   <a href="#home"     onclick="showView('home'); toggleMobile(); return false;"   class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Home"     data-tr="Ana Sayfa">Home</a>
   <a href="#about"    onclick="showView('about'); toggleMobile(); return false;"  class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="About"    data-tr="Hakkımızda">About</a>
   <a href="#events"   onclick="showView('events'); toggleMobile(); return false;" class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Events"   data-tr="Etkinlikler">Events</a>
-  <a href="#tuesdays" class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
-  <a href="#news"     class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="News"     data-tr="Haberler">News</a>
-  <a href="#join"     class="py-4 display text-[28px] text-red" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
+  <a href="#tuesdays" onclick="goAnchor('tuesdays'); toggleMobile(); return false;" class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="Tuesdays" data-tr="Salılar">Tuesdays</a>
+  <a href="#news"     onclick="goAnchor('news'); toggleMobile(); return false;"     class="py-4 border-b border-line display text-[28px] text-cream hover:text-red" data-en="News"     data-tr="Haberler">News</a>
+  <a href="#join"     onclick="goAnchor('join'); toggleMobile(); return false;"     class="py-4 display text-[28px] text-red" data-en="Join Us →" data-tr="Bize Katıl →">Join Us →</a>
   <div class="mt-auto flex items-center justify-between gap-2">
     <button type="button" class="theme-btn" onclick="toggleTheme()" aria-label="Toggle dark / light mode" title="Toggle dark / light mode">
       <svg class="theme-icon-sun"  viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
@@ -1413,7 +1933,7 @@
     </div>
   </section>
 
-  <section class="relative bg-coal py-16 md:py-28 overflow-hidden">
+  <section id="tuesdays" class="relative bg-coal py-16 md:py-28 overflow-hidden scroll-mt-24">
     <div class="absolute inset-0 grid-bg opacity-50"></div>
     <div class="absolute top-0 left-0 right-0 h-[1px] bg-red"></div>
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 relative">
@@ -1460,10 +1980,35 @@
           </div>
         </div>
       </div>
+
+      <!-- ===== HELMET CHECK MINIGAME CTA ===== -->
+      <div class="mt-12 md:mt-16 relative border border-line bg-panel overflow-hidden">
+        <div class="absolute inset-0 opacity-40 pointer-events-none" style="background:repeating-linear-gradient(45deg, var(--pattern-1) 0 6px, var(--pattern-2) 6px 12px);"></div>
+        <div class="absolute top-0 left-0 right-0 h-[2px] bg-red"></div>
+        <div class="relative grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-6 md:p-10">
+          <div class="md:col-span-8">
+            <div class="section-label mb-3"><span data-en="03 / Minigame" data-tr="03 / Mini Oyun">03 / Minigame</span></div>
+            <h3 class="display text-[40px] md:text-[64px] text-cream leading-[0.92]">
+              <span data-en="TEST YOUR" data-tr="REFLEKSİNİ">TEST YOUR</span><br/>
+              <span class="text-red" data-en="REACTION." data-tr="TEST ET.">REACTION.</span>
+            </h3>
+            <p class="mt-4 text-cream/75 text-sm md:text-base max-w-[520px]">
+              <span data-en="Helmet Check — spot every unhelmeted rider before they pass." data-tr="Kask Kontrolü — geçen her kasksız sürücüyü yakala.">Helmet Check — spot every unhelmeted rider before they pass.</span>
+            </p>
+          </div>
+          <div class="md:col-span-4 md:text-right">
+            <button type="button" onclick="HelmetGame.open()" class="btn-primary">
+              <span data-en="PLAY HELMET CHECK →" data-tr="KASK KONTROLÜ OYNA →">PLAY HELMET CHECK →</span>
+            </button>
+          </div>
+        </div>
+      </div>
+      <!-- ===== /HELMET CHECK CTA ===== -->
+
     </div>
   </section>
 
-  <section class="always-dark relative bg-red overflow-hidden">
+  <section id="join" class="always-dark relative bg-red overflow-hidden scroll-mt-24">
     <div class="max-w-[1400px] mx-auto px-5 md:px-10 py-20 md:py-28 relative">
       <div class="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
         <div class="md:col-span-8">
@@ -2296,6 +2841,20 @@ function showView(view) {
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
+/* Jump to an in-page anchor. Switches back to the home view first if the
+   user is on About/Events, then smooth-scrolls to the section. */
+function goAnchor(id) {
+  const homeVisible = !document.getElementById('view-home').classList.contains('hidden');
+  if (!homeVisible) showView('home');
+  /* showView resets scroll to top instantly, so wait a tick before scrolling */
+  setTimeout(() => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    else window.location.hash = id;
+  }, homeVisible ? 0 : 60);
+}
+window.goAnchor = goAnchor;
+
 function switchEventTab(tab) {
   document.querySelectorAll('[data-event-tab]').forEach(b => b.classList.toggle('active', b.dataset.eventTab === tab));
   document.querySelectorAll('[data-event-panel]').forEach(p => p.classList.toggle('hidden', p.dataset.eventPanel !== tab));
@@ -2568,6 +3127,1251 @@ initCarousels();
 
 const initialHash = window.location.hash.replace('#', '');
 if (initialHash === 'about' || initialHash === 'events') showView(initialHash);
+</script>
+
+<!-- ============================================================ -->
+<!--  HELMET CHECK MINIGAME OVERLAY                                -->
+<!-- ============================================================ -->
+<div id="helmet-game" role="dialog" aria-label="Helmet Check minigame" aria-modal="true">
+  <div class="hg-bg-glow" aria-hidden="true"></div>
+  <div class="hg-bg-grain" aria-hidden="true"></div>
+  <!-- Asphalt road silhouette -->
+  <svg class="hg-bg-road" viewBox="0 0 1600 400" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+    <defs>
+      <linearGradient id="hg-road-grad" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="rgb(var(--rgb-coal))" stop-opacity="0"/>
+        <stop offset="60%" stop-color="rgb(var(--rgb-panel2))" stop-opacity="0.7"/>
+        <stop offset="100%" stop-color="rgb(var(--rgb-coal))" stop-opacity="1"/>
+      </linearGradient>
+    </defs>
+    <path d="M 0 400 L 200 200 L 1400 200 L 1600 400 Z" fill="url(#hg-road-grad)"/>
+    <g stroke="rgb(var(--rgb-cream))" stroke-opacity="0.18" stroke-width="3" stroke-dasharray="40 28">
+      <line x1="800" y1="200" x2="800" y2="400"/>
+    </g>
+    <g stroke="rgb(var(--rgb-line))" stroke-width="2">
+      <line x1="200" y1="200" x2="0" y2="400"/>
+      <line x1="1400" y1="200" x2="1600" y2="400"/>
+    </g>
+  </svg>
+
+  <button type="button" class="hg-close" onclick="HelmetGame.close()" aria-label="Close">×</button>
+
+  <div class="hg-stage" id="hg-stage">
+    <!-- Title screen -->
+    <div class="hg-screen active" id="hg-screen-title">
+      <div class="section-label" style="display:inline-flex"><span data-en="Reaction Test" data-tr="Refleks Testi">Reaction Test</span></div>
+      <h2 class="hg-title-headline">
+        <span data-en="HELMET" data-tr="KASK">HELMET</span><br/>
+        <span class="accent" data-en="CHECK." data-tr="KONTROLÜ.">CHECK.</span>
+      </h2>
+      <div class="hg-title-sub" data-en="No helmet. No ride." data-tr="Kask yoksa, sürüş yok.">No helmet. No ride.</div>
+      <div class="hg-form">
+        <input type="text" id="hg-name" class="hg-input" maxlength="16" autocomplete="off" spellcheck="false"
+               placeholder="Your rider name" data-en-ph="Your rider name" data-tr-ph="Sürücü isminiz" />
+        <div class="hg-error" id="hg-name-error"></div>
+        <button type="button" id="hg-start" class="hg-start" disabled>
+          <span data-en="START" data-tr="BAŞLA">START</span>
+        </button>
+        <button type="button" class="hg-change-name" id="hg-change-name" style="display:none;">
+          <span data-en="Change name" data-tr="İsmi değiştir">Change name</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Countdown screen -->
+    <div class="hg-screen" id="hg-screen-countdown">
+      <div class="hg-countdown" id="hg-countdown-text">3</div>
+    </div>
+
+    <!-- Round play — 2D side-scrolling scene -->
+    <div class="hg-screen hg-screen-play" id="hg-screen-play">
+      <div class="hg-scene" id="hg-scene">
+        <div class="hg-sky" aria-hidden="true"></div>
+        <div class="hg-road" id="hg-road" aria-hidden="true">
+          <div class="hg-road-line" id="hg-road-line"></div>
+        </div>
+        <div class="hg-playfield" id="hg-playfield" role="group" aria-label="Riders"></div>
+        <div class="hg-curb" aria-hidden="true"></div>
+
+        <!-- HUD on the curb -->
+        <div class="hg-curb-hud">
+          <div class="hg-lives" id="hg-lives" aria-label="Lives">
+            <svg class="hg-life" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8 2 4.5 4.5 4 9v3.5L3 14v3h18v-3l-1-1.5V9c-.5-4.5-4-7-8-7zm-5.5 9c.5-3 2.5-5 5.5-5s5 2 5.5 5H6.5z"/></svg>
+            <svg class="hg-life" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8 2 4.5 4.5 4 9v3.5L3 14v3h18v-3l-1-1.5V9c-.5-4.5-4-7-8-7zm-5.5 9c.5-3 2.5-5 5.5-5s5 2 5.5 5H6.5z"/></svg>
+            <svg class="hg-life" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2C8 2 4.5 4.5 4 9v3.5L3 14v3h18v-3l-1-1.5V9c-.5-4.5-4-7-8-7zm-5.5 9c.5-3 2.5-5 5.5-5s5 2 5.5 5H6.5z"/></svg>
+          </div>
+          <div class="hg-score-wrap">
+            <div class="hg-score-label" data-en="SCORE" data-tr="SKOR">SCORE</div>
+            <div class="hg-score" id="hg-score">0</div>
+            <div class="hg-wave-bar"><div class="hg-wave-fill" id="hg-wave-fill"></div></div>
+          </div>
+          <div class="hg-speed-wrap">
+            <div class="hg-rpm-wrap" aria-label="Speed">
+              <svg viewBox="0 0 220 140" width="100%" height="100%" aria-hidden="true">
+                <path d="M 25 122 A 90 90 0 0 1 195 122"
+                      stroke="rgb(var(--rgb-line))" stroke-width="6" fill="none" stroke-linecap="round"/>
+                <path d="M 152 52 A 90 90 0 0 1 195 122"
+                      stroke="rgb(var(--rgb-red) / 0.35)" stroke-width="6" fill="none" stroke-linecap="round"/>
+                <path id="hg-rpm-fill" class="hg-rpm-fill"
+                      d="M 25 122 A 90 90 0 0 1 195 122"
+                      stroke="rgb(var(--rgb-red))" stroke-width="6" fill="none" stroke-linecap="round"
+                      pathLength="270" stroke-dasharray="270" stroke-dashoffset="270"/>
+                <line id="hg-rpm-needle" class="hg-rpm-needle"
+                      x1="110" y1="120" x2="110" y2="44"
+                      stroke="rgb(var(--rgb-red))" stroke-width="3" stroke-linecap="round"/>
+                <circle cx="110" cy="120" r="8" fill="rgb(var(--rgb-coal))" stroke="rgb(var(--rgb-red))" stroke-width="2"/>
+              </svg>
+            </div>
+            <div class="hg-round-label" id="hg-round-label">ROUND 1</div>
+          </div>
+        </div>
+
+        <div class="hg-edge-pulse" id="hg-edge-pulse" aria-hidden="true"></div>
+      </div>
+    </div>
+
+    <!-- Round transition -->
+    <div class="hg-screen" id="hg-screen-transition">
+      <div class="hg-round-clear" id="hg-transition-text">
+        <span data-en="ROUND 1 CLEARED" data-tr="TUR 1 TAMAM">ROUND 1 CLEARED</span>
+        <span class="bonus" id="hg-transition-bonus">+500</span>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div class="hg-screen" id="hg-screen-over">
+      <div class="hg-over">
+        <div class="hg-over-label" data-en="GAME OVER" data-tr="OYUN BİTTİ">GAME OVER</div>
+        <div class="hg-over-score" id="hg-final-score">0</div>
+        <div class="hg-over-rank" id="hg-rank">ROOKIE</div>
+
+        <div class="hg-leaderboard" id="hg-leaderboard">
+          <div class="hg-leaderboard-title">
+            <span data-en="LEADERBOARD" data-tr="LİDERLİK TABLOSU">LEADERBOARD</span>
+            <span class="hg-spinner" id="hg-lb-spinner" style="display:none;"></span>
+          </div>
+          <div id="hg-lb-rows"></div>
+        </div>
+
+        <div class="hg-actions">
+          <button type="button" class="btn-primary" onclick="HelmetGame.retry()"><span data-en="RETRY" data-tr="TEKRAR DENE">RETRY</span></button>
+          <button type="button" class="btn-ghost" onclick="HelmetGame.share()"><span data-en="SHARE" data-tr="PAYLAŞ">SHARE</span></button>
+          <button type="button" class="btn-ghost" onclick="HelmetGame.close()"><span data-en="CLOSE" data-tr="KAPAT">CLOSE</span></button>
+        </div>
+
+        <div class="hg-motto">
+          <span data-en="ONE RIDE." data-tr="TEK SÜRÜŞ.">ONE RIDE.</span>
+          <span class="accent" data-en="ONE FORMATION." data-tr="TEK FORMASYON.">ONE FORMATION.</span>
+        </div>
+        <button type="button" class="hg-join" onclick="HelmetGame.join()">
+          <span data-en="JOIN THE NEXT RIDE →" data-tr="SÜRÜŞE KATIL →">JOIN THE NEXT RIDE →</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stamp overlay (shown for wrong tap or miss) -->
+  <div class="hg-stamp" id="hg-stamp"></div>
+</div>
+
+<script>
+/* ================================================================
+ *  HELMET CHECK — minigame
+ * ================================================================ */
+window.HelmetGame = (function () {
+  'use strict';
+
+  /* ============ Supabase config (paste keys here) ================ */
+  const SUPABASE_URL      = ""; // e.g. "https://xxxx.supabase.co"
+  const SUPABASE_ANON_KEY = ""; // anon public key — safe to expose
+
+  /* ============ Storage keys ===================================== */
+  const LS_NAME = 'bauHelmetName';
+  const LS_PB   = 'bauHelmetPB';
+
+  /* ============ Profanity filter ================================= */
+  /* Names, slurs, and impersonation terms (EN + TR). Lower-case. */
+  const BLOCKLIST = [
+    /* English profanity */
+    'fuck','fucker','fucking','shit','bitch','asshole','dick','cock','cunt','pussy','bastard',
+    'piss','crap','wank','wanker','prick','twat','bollocks','arsehole','motherfucker','fk','wtf',
+    /* Slurs — racial / homophobic / ableist / antisemitic — sanitised list */
+    'nigger','nigga','chink','spic','kike','wetback','gook','tranny','faggot','fag','dyke',
+    'retard','retarded','cripple','mongoloid','jap','paki','coon','beaner','sandnigger',
+    /* Hate / targeted */
+    'nazi','hitler','kkk','hailhitler','heilhitler','isis',
+    /* Turkish profanity / slurs */
+    'amk','aq','amq','oç','oc','pic','piç','sik','sikim','sikik','siktir','sikerim','siktirgit',
+    'göt','got','gotveren','götveren','orospu','orospucocugu','orospucocuğu','orospuçocugu',
+    'yarrak','yarak','meme','am','amına','amina','amınakoyim','aminakoyim','ananı','anani',
+    'ananın','ananin','bok','boktan','kahpe','şerefsiz','serefsiz','ibne','gavat','puşt','pust',
+    'taşşak','tassak','yavşak','yavsak','dalyarak','dalyarrak','salak','aptal','gerizekalı',
+    'gerizekali','manyak','döl','dol','ananısikim','aminasikim','sikiş','sikis','siken',
+    /* Impersonation / authority */
+    'bau','bauriders','bauyk','yk','admin','administrator','moderator','mod','dean','dekan',
+    'yönetim','yonetim','başkan','baskan','president','rector','rektör','rektor','staff'
+  ];
+
+  /* Reverse leetspeak: collapse common digit/symbol substitutions back to letters */
+  function normalize(raw) {
+    let s = (raw || '').toLowerCase().normalize('NFKD');
+    /* strip diacritics */
+    s = s.replace(/[̀-ͯ]/g, '');
+    /* turkish letter swaps */
+    s = s.replace(/ı/g,'i').replace(/İ/g,'i').replace(/ş/g,'s').replace(/ğ/g,'g')
+         .replace(/ü/g,'u').replace(/ö/g,'o').replace(/ç/g,'c');
+    /* leet swaps */
+    s = s.replace(/0/g,'o').replace(/1/g,'i').replace(/3/g,'e').replace(/4/g,'a')
+         .replace(/5/g,'s').replace(/7/g,'t').replace(/@/g,'a').replace(/\$/g,'s')
+         .replace(/!/g,'i').replace(/8/g,'b');
+    /* strip all non-alphanumeric so "f.u.c.k" / "f u c k" / "f*ck" collapse */
+    s = s.replace(/[^a-z0-9]/g,'');
+    return s;
+  }
+
+  function isClean(rawName) {
+    const n = (rawName || '').trim();
+    if (!n) return false;
+    if (n.length > 16) return false;
+    /* reject only-punctuation or only-digits */
+    if (/^[^a-zA-ZÀ-ſğİış]+$/.test(n)) return false;
+    if (/^\d+$/.test(n)) return false;
+
+    const norm = normalize(n);
+    if (!norm) return false;
+
+    /* alt: also try with a 1-char-deduped variant ("ssshit" -> "shit") */
+    const dedup = norm.replace(/(.)\1+/g,'$1');
+
+    for (let i = 0; i < BLOCKLIST.length; i++) {
+      const term = BLOCKLIST[i];
+      if (!term) continue;
+      if (norm === term || norm.includes(term)) return false;
+      if (dedup === term || dedup.includes(term)) return false;
+    }
+    return true;
+  }
+
+  function sanitizeName(raw) {
+    return (raw || '').replace(/\s+/g,' ').trim().slice(0, 16);
+  }
+
+  /* ============ Tuning constants ================================ */
+  /* Round 1 should already feel like a reaction test — the previous
+     pacing left ~12s of dead air per wave. Punched up: faster baseline
+     speed, tighter spawn gap, more unhelmeted, slightly bigger wave. */
+  const BASE_SPEED   = 260;     // px/s, round 1
+  const SPEED_MULT   = 1.11;    // ×/round
+  const SPEED_CAP    = 580;     // px/s
+  const BASE_GAP_MS  = 820;     // ms between spawns, round 1
+  const GAP_MULT     = 0.91;    // ×/round
+  const GAP_FLOOR    = 460;     // ms
+  const BASE_RIDERS  = 5;       // round 1 wave size
+  const NO_HELMET_BASE = 0.40;
+  const NO_HELMET_CAP  = 0.55;
+  const NO_HELMET_DRIFT = 0.03;
+  const DOUBLE_FROM_ROUND = 3;
+  const DOUBLE_CHANCE = 0.22;
+
+  /* ============ Game state ====================================== */
+  let state = {
+    open: false,
+    playerName: '',
+    score: 0,
+    lives: 3,
+    round: 0,
+    riders: [],          /* live riders: {el, hasHelmet, lane, x, y, width, height, tagged, exited} */
+    /* Wave bookkeeping */
+    wave: {
+      total: 0, spawned: 0, missed: 0, wrongFlags: 0,
+      speed: BASE_SPEED, gapMs: BASE_GAP_MS, ratio: NO_HELMET_BASE,
+      lastLane: 1,            // alternate by default
+      nextSpawnAt: 0,         // ms from wave start
+      elapsedMs: 0,
+      spawnPlan: []           // queue of { hasHelmet, double }
+    },
+    /* Sim loop */
+    sim: { rafId: null, lastTs: 0, paused: false, running: false },
+    /* Layout cache */
+    layout: { fieldW: 0, fieldH: 0, laneY: [0, 0], riderW: 88, riderH: 64 },
+    pbLocal: 0,
+    submitting: false,
+    lastSubmit: 0
+  };
+
+  /* ============ DOM refs (lazy) ================================= */
+  const $ = (id) => document.getElementById(id);
+  let els = null;
+  function refs() {
+    if (els) return els;
+    els = {
+      root: $('helmet-game'),
+      lives: $('hg-lives'),
+      score: $('hg-score'),
+      waveFill: $('hg-wave-fill'),
+      rpmFill: $('hg-rpm-fill'),
+      rpmNeedle: $('hg-rpm-needle'),
+      stage: $('hg-stage'),
+      stamp: $('hg-stamp'),
+      scene: $('hg-scene'),
+      road: $('hg-road'),
+      roadLine: $('hg-road-line'),
+      playfield: $('hg-playfield'),
+      edgePulse: $('hg-edge-pulse'),
+      screens: {
+        title: $('hg-screen-title'),
+        countdown: $('hg-screen-countdown'),
+        play: $('hg-screen-play'),
+        transition: $('hg-screen-transition'),
+        over: $('hg-screen-over')
+      },
+      countdown: $('hg-countdown-text'),
+      roundLabel: $('hg-round-label'),
+      transition: $('hg-transition-text'),
+      transitionBonus: $('hg-transition-bonus'),
+      finalScore: $('hg-final-score'),
+      rank: $('hg-rank'),
+      lbRows: $('hg-lb-rows'),
+      lbSpinner: $('hg-lb-spinner'),
+      name: $('hg-name'),
+      nameError: $('hg-name-error'),
+      start: $('hg-start'),
+      changeName: $('hg-change-name')
+    };
+    return els;
+  }
+
+  /* ============ i18n helper ===================================== */
+  function lang() { return (window.currentLang === 'tr') ? 'tr' : 'en'; }
+  function t(en, tr) { return lang() === 'tr' ? tr : en; }
+
+  /* Re-apply current language to any data-en/data-tr inside the overlay */
+  function applyLangToGame() {
+    const g = refs().root;
+    const l = lang();
+    g.querySelectorAll('[data-en]').forEach(el => {
+      const v = el.getAttribute('data-' + l);
+      if (v !== null) el.innerHTML = v;
+    });
+    /* placeholder swap on the name input */
+    if (els.name) {
+      const ph = els.name.getAttribute('data-' + l + '-ph');
+      if (ph) els.name.placeholder = ph;
+    }
+  }
+
+  /* ============ Open / close ==================================== */
+  function open() {
+    refs();
+    state.open = true;
+    document.body.classList.add('hg-locked');
+    els.root.classList.add('open');
+    /* read PB */
+    try { state.pbLocal = parseInt(localStorage.getItem(LS_PB) || '0', 10) || 0; } catch (e) {}
+    /* load saved name */
+    let saved = '';
+    try { saved = localStorage.getItem(LS_NAME) || ''; } catch (e) {}
+    if (saved) {
+      els.name.value = saved;
+      els.name.disabled = true;
+      els.changeName.style.display = 'inline-block';
+      els.start.disabled = !isClean(saved);
+      state.playerName = saved;
+    } else {
+      els.name.value = '';
+      els.name.disabled = false;
+      els.changeName.style.display = 'none';
+      els.start.disabled = true;
+      state.playerName = '';
+    }
+    els.nameError.textContent = '';
+    showScreen('title');
+    applyLangToGame();
+    /* focus name only if empty (don't pop the keyboard for returning players) */
+    if (!saved) setTimeout(() => els.name && els.name.focus(), 200);
+  }
+
+  function close() {
+    if (!state.open) return;
+    stopSim();
+    clearRiders();
+    state.open = false;
+    els.root.classList.add('fading');
+    setTimeout(() => {
+      els.root.classList.remove('open', 'fading');
+      document.body.classList.remove('hg-locked');
+    }, 320);
+  }
+
+  function join() {
+    close();
+    setTimeout(() => { window.location.hash = '#join'; }, 360);
+  }
+
+  /* ============ Name handling =================================== */
+  function bindNameForm() {
+    refs();
+    els.name.addEventListener('input', () => {
+      const v = sanitizeName(els.name.value);
+      els.nameError.textContent = '';
+      els.start.disabled = !isClean(v);
+    });
+    els.name.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !els.start.disabled) {
+        e.preventDefault();
+        beginGame();
+      }
+    });
+    els.start.addEventListener('click', beginGame);
+    els.changeName.addEventListener('click', () => {
+      els.name.disabled = false;
+      els.changeName.style.display = 'none';
+      els.name.focus();
+      els.name.select();
+    });
+  }
+
+  function beginGame() {
+    const v = sanitizeName(els.name.value);
+    if (!isClean(v)) {
+      els.nameError.textContent = t('Pick a different name.', 'Başka bir isim seç.');
+      return;
+    }
+    state.playerName = v;
+    try { localStorage.setItem(LS_NAME, v); } catch (e) {}
+    /* lock input */
+    els.name.value = v;
+    els.name.disabled = true;
+    els.changeName.style.display = 'inline-block';
+    els.nameError.textContent = '';
+
+    /* reset state */
+    state.score = 0;
+    state.lives = 3;
+    state.round = 0;
+    updateHUD();
+
+    runCountdown(() => startWave());
+  }
+
+  /* ============ Screen helpers ================================== */
+  function showScreen(name) {
+    refs();
+    Object.keys(els.screens).forEach(k => {
+      els.screens[k].classList.toggle('active', k === name);
+    });
+    /* Drop the stage padding while the 2D scene is playing so the road
+       can run edge-to-edge. */
+    if (els.stage) els.stage.classList.toggle('hg-stage-playing', name === 'play');
+  }
+
+  function updateHUD() {
+    refs();
+    els.score.textContent = String(state.score);
+    const lifeEls = els.lives.querySelectorAll('.hg-life');
+    lifeEls.forEach((el, i) => el.classList.toggle('lost', i >= state.lives));
+  }
+
+  /* ============ Countdown ======================================= */
+  function runCountdown(done) {
+    showScreen('countdown');
+    const seq = ['3','2','1', t('GO','HADİ')];
+    let i = 0;
+    function tick() {
+      if (i >= seq.length) { done(); return; }
+      els.countdown.textContent = seq[i];
+      /* re-trigger anim */
+      els.countdown.style.animation = 'none';
+      void els.countdown.offsetWidth;
+      els.countdown.style.animation = '';
+      i++;
+      setTimeout(tick, 500);
+    }
+    tick();
+  }
+
+  /* ============ Wave / round logic ============================== */
+  function startWave() {
+    refs();
+    state.round += 1;
+    const r = state.round;
+    const total       = BASE_RIDERS + (r - 1);
+    const speed       = Math.min(SPEED_CAP, BASE_SPEED * Math.pow(SPEED_MULT, r - 1));
+    const gapMs       = Math.max(GAP_FLOOR, BASE_GAP_MS * Math.pow(GAP_MULT, r - 1));
+    const ratio       = Math.min(NO_HELMET_CAP, NO_HELMET_BASE + (r - 1) * NO_HELMET_DRIFT);
+
+    /* Build the spawn plan up-front: shuffle helmet/no-helmet across slots,
+       then optionally promote some slots to "doubles" from round 4+. */
+    const noHelmetCount = Math.max(1, Math.round(total * ratio));
+    const flags = Array(total).fill(true);
+    const idx = Array.from({length: total}, (_, k) => k);
+    for (let i = idx.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [idx[i], idx[j]] = [idx[j], idx[i]];
+    }
+    for (let k = 0; k < noHelmetCount; k++) flags[idx[k]] = false;
+
+    state.wave.spawnPlan = flags.map((hasHelmet, i) => ({
+      hasHelmet,
+      /* doubles only from round 4+, not on the first slot, low chance */
+      double: (r >= DOUBLE_FROM_ROUND && i > 0 && Math.random() < DOUBLE_CHANCE)
+    }));
+    state.wave.total      = total;
+    state.wave.spawned    = 0;
+    state.wave.missed     = 0;
+    state.wave.wrongFlags = 0;
+    state.wave.speed      = speed;
+    state.wave.gapMs      = gapMs;
+    state.wave.ratio      = ratio;
+    state.wave.lastLane   = 1;
+    state.wave.elapsedMs  = 0;
+    state.wave.nextSpawnAt = 250;   // small delay before first spawn
+
+    clearRiders();
+    if (els.roundLabel) {
+      els.roundLabel.setAttribute('data-en', 'ROUND ' + r);
+      els.roundLabel.setAttribute('data-tr', r + '. TUR');
+      els.roundLabel.textContent = t('ROUND ' + r, r + '. TUR');
+    }
+    if (els.waveFill) els.waveFill.style.width = '0%';
+
+    showScreen('play');
+    measureField();
+    setRoadScrollSpeed(speed);
+    updateSpeedometer(speed);
+    startSim();
+  }
+
+  function measureField() {
+    refs();
+    const rect = els.playfield.getBoundingClientRect();
+    state.layout.fieldW = rect.width;
+    state.layout.fieldH = rect.height;
+    /* CSS-driven rider sizes — keep in sync with .hg-rider media queries.
+       Includes the 10px tap padding on each side (so add 20px to both
+       dimensions for the bounding box). */
+    const wide  = window.matchMedia('(min-width: 1280px)').matches;
+    const big   = window.matchMedia('(min-width: 768px)').matches;
+    const cssRiderW = wide ? 196 : big ? 168 : 96;
+    const cssRiderH = wide ? 142 : big ? 122 : 72;
+    state.layout.riderH = cssRiderH;
+    state.layout.riderW = cssRiderW;
+    /* Lane Y is the TOP of the rider element. Centre each lane in its
+       half of the playfield. */
+    const halfH = cssRiderH / 2;
+    state.layout.laneY = [
+      Math.max(2, rect.height * 0.30 - halfH),
+      Math.max(2, rect.height * 0.68 - halfH)
+    ];
+  }
+
+  /* Recompute layout if the viewport resizes mid-game */
+  window.addEventListener('resize', () => {
+    if (state.open && state.sim.running) measureField();
+  });
+
+  function setRoadScrollSpeed(pxPerSec) {
+    if (!els.roadLine) return;
+    /* The line's pattern repeats every 64px; one cycle = 64 / speed seconds. */
+    const dur = Math.max(0.18, 64 / Math.max(1, pxPerSec));
+    els.roadLine.style.animationDuration = dur.toFixed(3) + 's';
+  }
+
+  function updateSpeedometer(pxPerSec) {
+    const t01 = Math.max(0, Math.min(1, (pxPerSec - BASE_SPEED) / (SPEED_CAP - BASE_SPEED)));
+    const angle = -78 + 156 * t01;
+    if (els.rpmNeedle) els.rpmNeedle.style.transform = 'rotate(' + angle.toFixed(1) + 'deg)';
+    if (els.rpmFill) {
+      const len = 270;
+      els.rpmFill.style.strokeDashoffset = String(len - len * t01);
+      els.rpmFill.style.stroke = t01 > 0.75
+        ? 'rgb(var(--rgb-red-bright))'
+        : 'rgb(var(--rgb-red))';
+    }
+  }
+
+  function clearRiders() {
+    refs();
+    state.riders = [];
+    if (els.playfield) els.playfield.innerHTML = '';
+  }
+
+  /* ============ Sim loop ======================================== */
+  function startSim() {
+    stopSim();
+    state.sim.running = true;
+    state.sim.paused = false;
+    state.sim.lastTs = 0;
+    state.sim.rafId = requestAnimationFrame(simStep);
+  }
+  function stopSim() {
+    if (state.sim.rafId) cancelAnimationFrame(state.sim.rafId);
+    state.sim.rafId = null;
+    state.sim.running = false;
+    state.sim.paused = false;
+    state.sim.lastTs = 0;
+  }
+  function pauseSim() {
+    if (!state.sim.running || state.sim.paused) return;
+    state.sim.paused = true;
+    if (els.road) els.road.classList.add('paused');
+    state.riders.forEach(r => r.el.classList.add('paused'));
+  }
+  function resumeSim() {
+    if (!state.sim.running || !state.sim.paused) return;
+    state.sim.paused = false;
+    state.sim.lastTs = 0;   // avoid a giant dt
+    if (els.road) els.road.classList.remove('paused');
+    state.riders.forEach(r => r.el.classList.remove('paused'));
+  }
+
+  function simStep(ts) {
+    if (!state.sim.running) return;
+    if (state.sim.paused) {
+      state.sim.rafId = requestAnimationFrame(simStep);
+      return;
+    }
+    const last = state.sim.lastTs || ts;
+    const dt = Math.min(64, ts - last);   // clamp to avoid huge jumps
+    state.sim.lastTs = ts;
+    state.wave.elapsedMs += dt;
+
+    /* Spawn riders per the schedule */
+    while (state.wave.spawned < state.wave.total &&
+           state.wave.elapsedMs >= state.wave.nextSpawnAt) {
+      spawnNextFromPlan();
+      state.wave.nextSpawnAt += state.wave.gapMs;
+    }
+
+    /* Advance live riders */
+    const speed = state.wave.speed;
+    const dx = speed * (dt / 1000);
+    for (let i = state.riders.length - 1; i >= 0; i--) {
+      const r = state.riders[i];
+      if (r.tagged) continue;
+      r.x -= dx;
+      r.el.style.transform = 'translate3d(' + r.x.toFixed(1) + 'px,' + r.y.toFixed(1) + 'px,0)';
+      /* Exit left edge */
+      if (r.x + r.width < -8) {
+        r.exited = true;
+        if (!r.hasHelmet) {
+          /* missed unhelmeted */
+          state.wave.missed += 1;
+          flashStamp(t('LEFT BEHIND', 'GERİDE KALDI'));
+          pulseEdge();
+          vibrate([30, 40, 30]);
+          loseLife();
+          if (state.lives <= 0) { endRunDueToDeath(); return; }
+        }
+        /* remove */
+        if (r.el.parentNode) r.el.parentNode.removeChild(r.el);
+        state.riders.splice(i, 1);
+      }
+    }
+
+    /* Wave end check: all spawned + none alive */
+    if (state.wave.spawned >= state.wave.total && state.riders.length === 0) {
+      finishWave();
+      return;
+    }
+
+    state.sim.rafId = requestAnimationFrame(simStep);
+  }
+
+  function spawnNextFromPlan() {
+    const plan = state.wave.spawnPlan[state.wave.spawned];
+    if (!plan) { state.wave.spawned += 1; return; }
+
+    if (plan.double) {
+      /* Two riders, one in each lane, same x. Both count as one slot. */
+      spawnRider(plan.hasHelmet, 0);
+      /* Pair gets a randomised second helmet status, biased to the same wrong-tap chaos */
+      const pairFlag = Math.random() < state.wave.ratio ? false : true;
+      spawnRider(pairFlag, 1);
+    } else {
+      /* Alternate lane */
+      const lane = state.wave.lastLane === 0 ? 1 : 0;
+      spawnRider(plan.hasHelmet, lane);
+      state.wave.lastLane = lane;
+    }
+    state.wave.spawned += 1;
+    if (els.waveFill) {
+      const pct = Math.round(100 * state.wave.spawned / state.wave.total);
+      els.waveFill.style.width = pct + '%';
+    }
+  }
+
+  function spawnRider(hasHelmet, lane) {
+    refs();
+    const layout = state.layout;
+    if (!layout.fieldW) measureField();
+
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'hg-rider';
+    el.setAttribute('aria-label', hasHelmet ? 'Rider with helmet' : 'Rider without helmet');
+    el.innerHTML = '<div class="hg-bob">' + riderSVG(hasHelmet) + '</div>';
+
+    const rider = {
+      el,
+      hasHelmet: !!hasHelmet,
+      lane,
+      width: layout.riderW,
+      height: layout.riderH,
+      x: layout.fieldW + 8,
+      y: layout.laneY[lane] || 0,
+      tagged: false,
+      exited: false
+    };
+    el.style.transform = 'translate3d(' + rider.x.toFixed(1) + 'px,' + rider.y.toFixed(1) + 'px,0)';
+
+    /* pointerdown for snappier mobile response */
+    const onTap = (ev) => {
+      ev.preventDefault();
+      onRiderTap(rider);
+    };
+    el.addEventListener('pointerdown', onTap);
+
+    els.playfield.appendChild(el);
+    state.riders.push(rider);
+  }
+
+  function onRiderTap(rider) {
+    if (rider.tagged || rider.exited) return;
+
+    if (!rider.hasHelmet) {
+      /* CORRECT — screech to a stop, green check, score float, fade out */
+      rider.tagged = true;
+      const gain = 100 * state.round;
+      state.score += gain;
+      vibrate(20);
+      bumpScore();
+
+      /* keep the rider at its tap position; fade keyframe is opacity-only */
+      rider.el.classList.add('tagged-correct');
+
+      /* check + score float */
+      const check = document.createElement('div');
+      check.className = 'hg-check';
+      check.textContent = '✓';
+      rider.el.appendChild(check);
+      const sf = document.createElement('div');
+      sf.className = 'hg-score-float';
+      sf.textContent = '+' + gain;
+      rider.el.appendChild(sf);
+
+      /* remove from sim list immediately so it stops moving */
+      const i = state.riders.indexOf(rider);
+      if (i >= 0) state.riders.splice(i, 1);
+
+      /* reposition independently of sim (uses last x) */
+      rider.el.style.transform = 'translate3d(' + rider.x.toFixed(1) + 'px,' + rider.y.toFixed(1) + 'px,0)';
+
+      setTimeout(() => {
+        if (rider.el.parentNode) rider.el.parentNode.removeChild(rider.el);
+      }, 280);
+
+      /* if all riders spawned and field cleared, finishWave runs in next sim step;
+         but if sim already returned (no riders left), check explicitly */
+      if (state.wave.spawned >= state.wave.total && state.riders.length === 0) {
+        finishWave();
+      }
+    } else {
+      /* WRONG — rider keeps riding. Flash, edge pulse, stamp, lose life. */
+      state.wave.wrongFlags += 1;
+      rider.el.classList.add('wrong-flash');
+      setTimeout(() => rider.el.classList.remove('wrong-flash'), 460);
+      flashStamp(t('NO HELMET, NO RIDE', 'KASK YOKSA SÜRÜŞ YOK'));
+      pulseEdge();
+      vibrate([30, 30, 30]);
+      loseLife();
+      if (state.lives <= 0) { endRunDueToDeath(); }
+    }
+  }
+
+  function finishWave() {
+    /* Clean wave = no missed AND no false flags */
+    const clean = state.wave.missed === 0 && state.wave.wrongFlags === 0;
+    const bonus = clean ? 500 * state.round : 0;
+    if (bonus) state.score += bonus;
+    bumpScore();
+
+    stopSim();
+    showTransition(state.round, bonus, () => {
+      if (state.lives <= 0) { endGame(); return; }
+      startWave();
+    });
+  }
+
+  function endRunDueToDeath() {
+    stopSim();
+    /* Remove all riders mid-flight; freeze them visually for a beat */
+    state.riders.forEach(r => r.el.classList.add('paused'));
+    setTimeout(endGame, 600);
+  }
+
+  function loseLife() {
+    state.lives = Math.max(0, state.lives - 1);
+    updateHUD();
+  }
+
+  function bumpScore() {
+    if (!els.score) return;
+    els.score.textContent = String(state.score);
+    els.score.classList.remove('bump');
+    void els.score.offsetWidth;
+    els.score.classList.add('bump');
+  }
+
+  function pulseEdge() {
+    if (!els.edgePulse) return;
+    els.edgePulse.classList.remove('active');
+    void els.edgePulse.offsetWidth;
+    els.edgePulse.classList.add('active');
+  }
+
+  function showTransition(round, bonus, done) {
+    refs();
+    const txt = els.transition.querySelector('span[data-en]') || els.transition;
+    txt.setAttribute('data-en', 'ROUND ' + round + ' CLEARED');
+    txt.setAttribute('data-tr', round + '. TUR TEMİZ');
+    txt.textContent = t('ROUND ' + round + ' CLEARED', round + '. TUR TEMİZ');
+    els.transitionBonus.textContent = bonus > 0 ? ('+' + bonus) : t('CLOSE CALL', 'KIL PAYI');
+    showScreen('transition');
+    setTimeout(done, 800);
+  }
+
+  /* ============ Stamp ============================================ */
+  function flashStamp(text) {
+    refs();
+    els.stamp.textContent = text;
+    els.stamp.classList.remove('show');
+    void els.stamp.offsetWidth;
+    els.stamp.classList.add('show');
+  }
+
+  /* ============ Rider SVG (side view) =========================== */
+  /* Sport-bike + rider in single-colour silhouette (cream). The rider
+     is drawn as a proper anatomical figure — distinct neck, shoulder,
+     two-segment arm with an elbow, glove on the grip, hip on the seat,
+     thigh + knee + shin + boot on the rear peg — so it reads as a
+     human, not a blob. The bike has a proper sport-bike outline:
+     spoked wheels, twin fork legs, angular fairing nose with headlight
+     lens, fuel tank with seam, rising tail with tail vent, belly pan,
+     swing-arm with chain hint, side-mount exhaust canister, clip-on
+     handlebars. Bike faces LEFT (direction of travel).
+
+     Helmet vs. bare-head contrast is deliberately exaggerated so it
+     reads at full speed on a phone. */
+  function riderSVG(hasHelmet) {
+    /* HEAD — properly proportional. A real helmet is only slightly
+       larger than the head it's covering, so the helmet here is just
+       a touch wider than the bare-head ellipse below.
+
+       Reference frame: head sits at roughly x=110..130, y=10..28. */
+    const head = hasHelmet
+      ? (
+          /* Compact full-face helmet — single dome shape with chin
+             bar built in. Width ~22, height ~22 (proportional to a
+             body that's ~30 tall). */
+          '<g>' +
+            /* Dome (one continuous outline so it reads as a helmet,
+               not stacked rectangles) */
+            '<path fill="currentColor" d="' +
+              'M 109 18 ' +
+              'Q 109 8 120 8 ' +
+              'Q 131 8 131 18 ' +
+              'L 131 24 ' +
+              'Q 131 28 127 28 ' +
+              'L 113 28 ' +
+              'Q 109 28 109 24 Z"/>' +
+            /* Visor — single dark band */
+            '<path fill="rgb(var(--rgb-coal))" d="M 111 14 L 130 13 L 130 20 L 111 21 Z"/>' +
+            /* Visor highlight (tiny glass reflection) */
+            '<path d="M 112 15 L 129 14 L 129 16 L 112 17 Z" fill="rgb(var(--rgb-cream) / 0.35)"/>' +
+            /* Chin-bar shadow line */
+            '<path d="M 113 25 L 127 25" stroke="rgb(var(--rgb-coal) / 0.55)" stroke-width="0.8"/>' +
+          '</g>'
+        )
+      : (
+          /* Bare head — ellipse with hair tuft + sunglasses line.
+             Distinctly smaller than the helmet so it reads "no helmet"
+             at speed. */
+          '<g>' +
+            '<ellipse cx="120" cy="18" rx="9" ry="11" fill="currentColor"/>' +
+            /* Hair tuft, blown back from the wind */
+            '<path fill="currentColor" d="M 112 11 Q 115 4 122 5 Q 128 6 130 12 L 129 18 Q 120 16 112 18 Z"/>' +
+            /* Ear */
+            '<ellipse cx="128" cy="18" rx="2" ry="2.5" fill="rgb(var(--rgb-coal) / 0.55)"/>' +
+            /* Sunglasses line — instant face cue */
+            '<rect x="111" y="16" width="11" height="2.2" fill="rgb(var(--rgb-coal) / 0.75)" rx="0.6"/>' +
+          '</g>'
+        );
+
+    /* viewBox 0..220 wide, 0..130 tall.
+
+       Design rule: the BIKE BODY is one continuous flowing silhouette
+       (not stacked rectangles). The wheels are large and prominent —
+       they're what makes it read as a motorcycle. The rider sits on
+       top with proper anatomical proportions: the helmet is only
+       ~10% of the bike's total length, not a giant dome.
+
+       Reference points:
+         - Front wheel: (44, 96), r=22
+         - Rear wheel:  (180, 96), r=22
+         - Bike top edge: y ~ 44 (tank), y ~ 38 (tail tip)
+         - Bike bottom edge: y ~ 88 (belly pan)
+         - Seat top: y = 50, at x ~ 138-160
+         - Rider hip: (138, 50)
+         - Rider shoulder: (124, 26)
+         - Rider helmet: centred at (120, 18), 22 wide × 22 tall
+         - Front grip: (24, 56)
+
+       Layers (back-to-front): shadow → wheels → swing-arm →
+       rider rear leg → bike body silhouette → details (headlight,
+       seam, exhaust, fork, handlebar) → rider hip → torso → arm →
+       glove → neck → helmet. */
+    return (
+      '<svg viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">' +
+
+        /* Ground shadow */
+        '<ellipse cx="112" cy="124" rx="92" ry="3" fill="rgb(var(--rgb-coal))" opacity="0.5"/>' +
+
+        /* ============ WHEELS — bold, prominent (this is what makes it read as a motorcycle) ============ */
+        /* REAR */
+        '<g class="hg-wheel">' +
+          /* tyre */
+          '<circle cx="180" cy="96" r="22" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="3.5"/>' +
+          /* rim */
+          '<circle cx="180" cy="96" r="13" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="1.6"/>' +
+          /* spokes (4-spoke X) */
+          '<g stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+            '<line x1="180" y1="83" x2="180" y2="109"/>' +
+            '<line x1="167" y1="96" x2="193" y2="96"/>' +
+            '<line x1="171" y1="87" x2="189" y2="105"/>' +
+            '<line x1="171" y1="105" x2="189" y2="87"/>' +
+          '</g>' +
+          /* hub */
+          '<circle cx="180" cy="96" r="3.5" fill="currentColor"/>' +
+        '</g>' +
+        /* FRONT */
+        '<g class="hg-wheel">' +
+          '<circle cx="44" cy="96" r="22" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="3.5"/>' +
+          '<circle cx="44" cy="96" r="13" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="1.6"/>' +
+          '<g stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
+            '<line x1="44" y1="83" x2="44" y2="109"/>' +
+            '<line x1="31" y1="96" x2="57" y2="96"/>' +
+            '<line x1="35" y1="87" x2="53" y2="105"/>' +
+            '<line x1="35" y1="105" x2="53" y2="87"/>' +
+          '</g>' +
+          '<circle cx="44" cy="96" r="3.5" fill="currentColor"/>' +
+        '</g>' +
+
+        /* ============ SWING-ARM ============ */
+        '<path d="M 124 84 L 178 96" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+
+        /* ============ Rider REAR LEG (boot peeks behind tail) ============ */
+        '<path fill="currentColor" d="M 158 76 L 180 76 L 188 84 L 188 90 L 162 90 L 154 84 Z"/>' +
+        '<rect x="180" y="80" width="8" height="6" fill="rgb(var(--rgb-coal) / 0.6)" rx="1"/>' +
+
+        /* =====================================================
+           BIKE BODY — ONE flowing silhouette path.
+           Goes clockwise from the front-bottom of the fairing,
+           up over the nose, across the tank, down to the seat,
+           up the tail to a sharp tip, back down and around under
+           the seat, along the belly pan, back to the start.
+           ===================================================== */
+        '<path fill="currentColor" d="' +
+          'M 28 86 ' +              /* front-bottom of fairing */
+          'L 30 70 ' +              /* up the front edge */
+          'L 22 56 ' +              /* nose tip pointing forward */
+          'L 32 46 ' +              /* up to top of nose */
+          'L 56 44 ' +              /* across top of fairing */
+          'Q 78 38 100 40 ' +       /* tank rises */
+          'L 134 40 ' +             /* tank top */
+          'Q 152 40 162 50 ' +      /* tank-to-seat curve */
+          'L 168 50 ' +             /* seat front */
+          'Q 184 46 196 36 ' +      /* tail rises sharply */
+          'L 202 38 ' +             /* sharp tail tip */
+          'L 202 56 ' +             /* tail back-edge down */
+          'L 192 70 ' +             /* tail bottom curl */
+          'L 168 74 ' +             /* under-seat going forward */
+          'L 156 80 ' +             /* down to engine bottom */
+          'L 64 84 ' +              /* belly pan flat bottom */
+          'L 48 88 ' +              /* belly pan dip in front */
+          'Z"/>' +
+
+        /* Headlight — single dark eye in the fairing nose */
+        '<ellipse cx="32" cy="60" rx="6" ry="3.5" fill="rgb(var(--rgb-coal))" transform="rotate(-18 32 60)"/>' +
+        '<ellipse cx="34" cy="59" rx="2.2" ry="1" fill="rgb(var(--rgb-cream) / 0.45)" transform="rotate(-18 34 59)"/>' +
+
+        /* Tank seam (single subtle line — defines the tank silhouette) */
+        '<path d="M 76 52 Q 110 48 154 52" stroke="rgb(var(--rgb-coal) / 0.45)" stroke-width="1.2" fill="none"/>' +
+
+        /* Engine separation line — divides tank/seat from belly pan */
+        '<path d="M 64 78 Q 110 74 156 78" stroke="rgb(var(--rgb-coal) / 0.4)" stroke-width="1" fill="none"/>' +
+
+        /* Front fork going up to handlebar */
+        '<path d="M 44 96 L 38 70 L 30 60" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
+        /* Handlebar grip */
+        '<path d="M 30 60 L 22 56" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+
+        /* Exhaust pipe (low and to the rear) */
+        '<path fill="currentColor" d="M 168 78 L 204 80 L 212 84 L 212 90 L 204 92 L 168 86 Z"/>' +
+        '<rect x="206" y="85" width="6" height="4" rx="1" fill="rgb(var(--rgb-coal) / 0.8)"/>' +
+
+        /* ============ RIDER ============ */
+
+        /* HIP firmly on the seat */
+        '<ellipse cx="138" cy="50" rx="14" ry="7" fill="currentColor"/>' +
+        /* Front THIGH (just visible above the tank) */
+        '<path fill="currentColor" d="M 130 48 L 158 48 L 166 60 L 152 64 L 128 58 Z"/>' +
+        /* Knee cap */
+        '<circle cx="160" cy="56" r="5" fill="currentColor"/>' +
+
+        /* TORSO / BACK — moderate forward lean. Hip → shoulder. */
+        '<path fill="currentColor" d="' +
+          'M 134 48 ' +
+          'L 142 30 ' +
+          'Q 134 18 124 18 ' +
+          'L 118 26 ' +
+          'Q 120 38 130 52 Z"/>' +
+        /* Spine highlight */
+        '<path d="M 124 24 Q 132 36 140 50" stroke="rgb(var(--rgb-coal) / 0.3)" stroke-width="1" fill="none"/>' +
+
+        /* SHOULDER */
+        '<ellipse cx="124" cy="26" rx="11" ry="9" fill="currentColor"/>' +
+
+        /* UPPER ARM — shoulder to elbow */
+        '<path fill="currentColor" d="M 120 26 L 84 44 L 78 40 L 116 18 Z"/>' +
+        /* ELBOW */
+        '<circle cx="80" cy="42" r="4.5" fill="currentColor"/>' +
+        /* FOREARM — elbow to glove on the bar */
+        '<path fill="currentColor" d="M 82 40 L 28 56 L 22 52 L 80 32 Z"/>' +
+        /* GLOVE on grip */
+        '<ellipse cx="26" cy="56" rx="6" ry="4" fill="currentColor"/>' +
+        '<rect x="20" y="54" width="10" height="2" rx="1" fill="rgb(var(--rgb-coal) / 0.5)"/>' +
+
+        /* NECK — bridges shoulder to helmet */
+        '<path fill="currentColor" d="M 116 18 L 128 18 L 130 28 L 114 28 Z"/>' +
+
+        /* ============ HEAD / HELMET (top layer) ============ */
+        head +
+
+      '</svg>'
+    );
+  }
+
+  /* ============ Game over ======================================= */
+  function endGame() {
+    stopSim();
+    clearRiders();
+    /* update local PB */
+    if (state.score > state.pbLocal) {
+      state.pbLocal = state.score;
+      try { localStorage.setItem(LS_PB, String(state.pbLocal)); } catch (e) {}
+    }
+    refs();
+    els.finalScore.textContent = String(state.score);
+    const r = rankFor(state.score);
+    els.rank.textContent = t(r.en, r.tr);
+    /* render leaderboard placeholder */
+    renderLeaderboardOffline(true);
+    showScreen('over');
+    submitAndRefreshLeaderboard();
+  }
+
+  function rankFor(score) {
+    if (score >= 20000) return { en: 'PRESIDENT',       tr: 'BAŞKAN' };
+    if (score >= 12000) return { en: 'ENFORCER',        tr: 'ENFORCER' };
+    if (score >=  7000) return { en: 'VICE PRESIDENT',  tr: 'BAŞKAN YARDIMCISI' };
+    if (score >=  3000) return { en: 'YK MEMBER',       tr: 'YK ÜYESİ' };
+    if (score >=  1000) return { en: 'JUNIOR',          tr: 'JUNIOR' };
+    return                       { en: 'ROOKIE',          tr: 'ÇAYLAK' };
+  }
+
+  function retry() {
+    /* Skip name screen — go straight to countdown */
+    state.score = 0;
+    state.lives = 3;
+    state.round = 0;
+    updateHUD();
+    runCountdown(() => startWave());
+  }
+
+  function share() {
+    const r = rankFor(state.score);
+    const text = t(
+      'I scored ' + state.score + ' as ' + (state.playerName || 'rider') + ' on Helmet Check — rank: ' + r.en + '. Try it: ',
+      'Helmet Check\'te ' + (state.playerName || 'rider') + ' olarak ' + state.score + ' puan yaptım — rütbe: ' + r.tr + '. Sen de dene: '
+    ) + window.location.href;
+    if (navigator.share) {
+      navigator.share({ title: 'BAU Riders — Helmet Check', text }).catch(() => {});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text).then(() => {
+        flashStamp(t('COPIED', 'KOPYALANDI'));
+      }).catch(() => {});
+    }
+  }
+
+  /* ============ Supabase leaderboard ============================ */
+  function supaConfigured() {
+    return !!(SUPABASE_URL && SUPABASE_ANON_KEY);
+  }
+  function supaHeaders(extra) {
+    const h = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_ANON_KEY
+    };
+    if (extra) for (const k in extra) h[k] = extra[k];
+    return h;
+  }
+
+  function submitAndRefreshLeaderboard() {
+    if (!supaConfigured()) {
+      renderLeaderboardOffline(false);
+      return;
+    }
+    const now = Date.now();
+    const canSubmit =
+      state.score > 0 &&
+      Number.isFinite(state.score) &&
+      Number.isInteger(state.score) &&
+      state.score >= 0 && state.score < 1000000 &&
+      (now - state.lastSubmit) > 8000 &&
+      !state.submitting;
+
+    els.lbSpinner.style.display = 'inline-block';
+    state.submitting = true;
+    if (canSubmit) state.lastSubmit = now;
+
+    const submitP = canSubmit
+      ? fetch(SUPABASE_URL + '/rest/v1/scores', {
+          method: 'POST',
+          headers: supaHeaders({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+          body: JSON.stringify({ name: state.playerName.slice(0,16), score: state.score })
+        }).catch(() => null)
+      : Promise.resolve(null);
+
+    submitP.then(() => fetchLeaderboard())
+      .catch(() => renderLeaderboardOffline(false))
+      .finally(() => {
+        state.submitting = false;
+        els.lbSpinner.style.display = 'none';
+      });
+  }
+
+  function fetchLeaderboard() {
+    if (!supaConfigured()) {
+      renderLeaderboardOffline(false);
+      return Promise.resolve();
+    }
+    const top10P = fetch(
+      SUPABASE_URL + '/rest/v1/scores?select=name,score,created_at&order=score.desc&limit=10',
+      { headers: supaHeaders() }
+    ).then(r => r.ok ? r.json() : []).catch(() => null);
+
+    const myBestP = fetch(
+      SUPABASE_URL + '/rest/v1/scores?select=score&name=eq.' +
+        encodeURIComponent(state.playerName) +
+        '&order=score.desc&limit=1',
+      { headers: supaHeaders() }
+    ).then(r => r.ok ? r.json() : []).catch(() => null);
+
+    return Promise.all([top10P, myBestP]).then(([top, mine]) => {
+      if (!top) { renderLeaderboardOffline(false); return; }
+      const myBest = (mine && mine[0] && Number.isFinite(mine[0].score))
+        ? mine[0].score
+        : state.pbLocal;
+      /* rank-by-name: count rows with score > myBest, +1 */
+      return fetch(
+        SUPABASE_URL + '/rest/v1/scores?select=id&score=gt.' + myBest,
+        { headers: supaHeaders({ 'Prefer': 'count=exact', 'Range-Unit': 'items', 'Range': '0-0' }) }
+      ).then(r => {
+        const cr = r.headers.get('content-range') || '0-0/0';
+        const total = parseInt(cr.split('/')[1] || '0', 10) || 0;
+        renderLeaderboard(top, { name: state.playerName, score: myBest, rank: total + 1 });
+      }).catch(() => renderLeaderboard(top, { name: state.playerName, score: myBest, rank: null }));
+    });
+  }
+
+  function renderLeaderboard(top, you) {
+    refs();
+    let html = '';
+    let inTop = false;
+    top.forEach((row, i) => {
+      const isYou = row.name === you.name && row.score === you.score;
+      if (isYou) inTop = true;
+      html += '<div class="hg-lb-row' + (isYou ? ' is-you' : '') + '">' +
+                '<div class="hg-lb-rank">#' + String(i + 1).padStart(2,'0') + '</div>' +
+                '<div class="hg-lb-name">' + escapeHTML(row.name) + '</div>' +
+                '<div class="hg-lb-score">' + row.score + '</div>' +
+              '</div>';
+    });
+    if (!inTop && you.score > 0) {
+      const rankStr = you.rank ? ('#' + String(you.rank).padStart(2,'0')) : '#—';
+      html += '<div class="hg-lb-row you">' +
+                '<div class="hg-lb-rank">' + rankStr + '</div>' +
+                '<div class="hg-lb-name">' + escapeHTML(you.name) + ' ' + t('(you)','(sen)') + '</div>' +
+                '<div class="hg-lb-score">' + you.score + '</div>' +
+              '</div>';
+    }
+    if (!html) {
+      html = '<div class="hg-lb-offline">' + t('No scores yet — be the first.','Henüz skor yok — ilk sen ol.') + '</div>';
+    }
+    els.lbRows.innerHTML = html;
+  }
+
+  function renderLeaderboardOffline(initial) {
+    refs();
+    const pb = state.pbLocal;
+    const msg = initial
+      ? (supaConfigured() ? t('Loading…','Yükleniyor…') : t('Leaderboard offline','Liderlik tablosu çevrimdışı'))
+      : t('Leaderboard offline — your best: ' + pb,
+          'Liderlik tablosu çevrimdışı — en iyin: ' + pb);
+    els.lbRows.innerHTML = '<div class="hg-lb-offline">' + msg + '</div>';
+  }
+
+  function escapeHTML(s) {
+    return String(s).replace(/[&<>"']/g, c => ({
+      '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+    }[c]));
+  }
+
+  /* ============ Misc ============================================ */
+  function vibrate(p) {
+    try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {}
+  }
+
+  /* Pause when tab loses focus mid-wave */
+  document.addEventListener('visibilitychange', () => {
+    if (!state.open) return;
+    if (document.hidden) pauseSim();
+    else resumeSim();
+  });
+
+  /* Esc closes the overlay */
+  document.addEventListener('keydown', (e) => {
+    if (state.open && e.key === 'Escape') close();
+  });
+
+  /* Hook into the existing setLang so the game UI flips with the site */
+  (function patchSetLang() {
+    if (typeof window.setLang !== 'function') return;
+    const orig = window.setLang;
+    window.setLang = function (l) {
+      orig(l);
+      if (state.open) applyLangToGame();
+    };
+  })();
+
+  /* Bind name form on first load */
+  document.addEventListener('DOMContentLoaded', bindNameForm);
+  if (document.readyState !== 'loading') bindNameForm();
+
+  /* Public API */
+  return { open, close, retry, share, join };
+})();
 </script>
 
 </body>
