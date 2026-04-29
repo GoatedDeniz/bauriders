@@ -1363,10 +1363,13 @@
     text-transform: uppercase;
   }
 
-  /* RIDER (absolutely positioned within .hg-playfield) */
+  /* RIDER (absolutely positioned within .hg-playfield).
+     Aspect ~1.43:1 to match the imported motorcycle SVG viewBox
+     (1115×782). Mobile sprite is at least 90px tall so helmet vs.
+     no-helmet stays readable on a phone. */
   .hg-rider {
     position: absolute;
-    width: 96px; height: 72px;
+    width: 180px; height: 126px;
     /* Tap-target padding: invisible 10px ring around the SVG so 44×44 is comfortable */
     padding: 10px;
     background: transparent; border: 0; outline: none;
@@ -1376,8 +1379,8 @@
     -webkit-tap-highlight-color: transparent;
     transition: opacity 0.25s ease;
   }
-  @media (min-width: 768px) { .hg-rider { width: 168px; height: 122px; } }
-  @media (min-width: 1280px) { .hg-rider { width: 196px; height: 142px; } }
+  @media (min-width: 768px) { .hg-rider { width: 240px; height: 168px; } }
+  @media (min-width: 1280px) { .hg-rider { width: 280px; height: 196px; } }
   .hg-rider svg {
     width: 100%; height: 100%; display: block; overflow: visible;
     color: rgb(var(--rgb-cream));
@@ -3393,7 +3396,7 @@ window.HelmetGame = (function () {
     /* Sim loop */
     sim: { rafId: null, lastTs: 0, paused: false, running: false },
     /* Layout cache */
-    layout: { fieldW: 0, fieldH: 0, laneY: [0, 0], riderW: 88, riderH: 64 },
+    layout: { fieldW: 0, fieldH: 0, laneY: [0, 0], riderW: 180, riderH: 90, singleLane: false },
     pbLocal: 0,
     submitting: false,
     lastSubmit: 0
@@ -3648,21 +3651,32 @@ window.HelmetGame = (function () {
     state.layout.fieldW = rect.width;
     state.layout.fieldH = rect.height;
     /* CSS-driven rider sizes — keep in sync with .hg-rider media queries.
-       Includes the 10px tap padding on each side (so add 20px to both
-       dimensions for the bounding box). */
+       Aspect ~1.43:1 (matches the imported motorcycle SVG viewBox). */
     const wide  = window.matchMedia('(min-width: 1280px)').matches;
     const big   = window.matchMedia('(min-width: 768px)').matches;
-    const cssRiderW = wide ? 196 : big ? 168 : 96;
-    const cssRiderH = wide ? 142 : big ? 122 : 72;
+    const cssRiderW = wide ? 280 : big ? 240 : 180;
+    const cssRiderH = wide ? 196 : big ? 168 : 126;
     state.layout.riderH = cssRiderH;
     state.layout.riderW = cssRiderW;
-    /* Lane Y is the TOP of the rider element. Centre each lane in its
-       half of the playfield. */
+
+    /* Single-lane mode: on viewports narrower than 440px there isn't
+       enough vertical room for two readable lanes, so collapse to one. */
+    const singleLane = window.matchMedia('(max-width: 439px)').matches;
+    state.layout.singleLane = singleLane;
+
+    /* Lane Y is the TOP of the rider element. With the taller 1.43:1
+       sprites we push the lanes further apart (25% / 75%) so they
+       don't visually overlap. */
     const halfH = cssRiderH / 2;
-    state.layout.laneY = [
-      Math.max(2, rect.height * 0.30 - halfH),
-      Math.max(2, rect.height * 0.68 - halfH)
-    ];
+    if (singleLane) {
+      const centerY = Math.max(2, rect.height * 0.5 - halfH);
+      state.layout.laneY = [centerY, centerY];
+    } else {
+      state.layout.laneY = [
+        Math.max(2, rect.height * 0.25 - halfH),
+        Math.max(2, rect.height * 0.75 - halfH)
+      ];
+    }
   }
 
   /* Recompute layout if the viewport resizes mid-game */
@@ -3782,15 +3796,18 @@ window.HelmetGame = (function () {
     const plan = state.wave.spawnPlan[state.wave.spawned];
     if (!plan) { state.wave.spawned += 1; return; }
 
-    if (plan.double) {
+    if (plan.double && !state.layout.singleLane) {
       /* Two riders, one in each lane, same x. Both count as one slot. */
       spawnRider(plan.hasHelmet, 0);
       /* Pair gets a randomised second helmet status, biased to the same wrong-tap chaos */
       const pairFlag = Math.random() < state.wave.ratio ? false : true;
       spawnRider(pairFlag, 1);
     } else {
-      /* Alternate lane */
-      const lane = state.wave.lastLane === 0 ? 1 : 0;
+      /* Single rider. In single-lane mode, always lane 0 (both lane Y
+         values are identical anyway); otherwise alternate lanes. */
+      const lane = state.layout.singleLane
+        ? 0
+        : (state.wave.lastLane === 0 ? 1 : 0);
       spawnRider(plan.hasHelmet, lane);
       state.wave.lastLane = lane;
     }
@@ -3964,199 +3981,218 @@ window.HelmetGame = (function () {
      Helmet vs. bare-head contrast is deliberately exaggerated so it
      reads at full speed on a phone. */
   function riderSVG(hasHelmet) {
-    /* HEAD — properly proportional. A real helmet is only slightly
-       larger than the head it's covering, so the helmet here is just
-       a touch wider than the bare-head ellipse below.
+    /* Adapted from a hand-drawn motorcycle stickman silhouette
+       (provided by the user). Original viewBox 1115×782, aspect ~1.43:1.
 
-       Reference frame: head sits at roughly x=110..130, y=10..28. */
+       Colour-token overrides applied:
+         - Original dark fills (#050505 / #1c1c1c) → currentColor
+           (which is set to --rgb-cream on the .hg-rider svg, so the
+           bike reads as a cream silhouette on the dark road).
+         - Helmet group → fill with --rgb-red for the helmeted variant.
+           This is the only red element on the rider, so helmet vs. no
+           helmet is instantly readable at speed.
+         - Bare-head variant replaces the helmet group with a smaller
+           cream circle and a steel hair-tuft arc.
+         - Visor cut-out kept dark (--rgb-coal) so it still reads as a
+           face shield against the red shell.
+         - Wheel rim/hub strokes kept dark (--rgb-coal) so the wheels
+           pop with internal contrast.
+         - Spoke groups wrapped in <g class="hg-wheel"> so the existing
+           CSS rotation animation still applies. */
+
     const head = hasHelmet
       ? (
-          /* Compact full-face helmet — single dome shape with chin
-             bar built in. Width ~22, height ~22 (proportional to a
-             body that's ~30 tall). */
-          '<g>' +
-            /* Dome (one continuous outline so it reads as a helmet,
-               not stacked rectangles) */
-            '<path fill="currentColor" d="' +
-              'M 109 18 ' +
-              'Q 109 8 120 8 ' +
-              'Q 131 8 131 18 ' +
-              'L 131 24 ' +
-              'Q 131 28 127 28 ' +
-              'L 113 28 ' +
-              'Q 109 28 109 24 Z"/>' +
-            /* Visor — single dark band */
-            '<path fill="rgb(var(--rgb-coal))" d="M 111 14 L 130 13 L 130 20 L 111 21 Z"/>' +
-            /* Visor highlight (tiny glass reflection) */
-            '<path d="M 112 15 L 129 14 L 129 16 L 112 17 Z" fill="rgb(var(--rgb-cream) / 0.35)"/>' +
-            /* Chin-bar shadow line */
-            '<path d="M 113 25 L 127 25" stroke="rgb(var(--rgb-coal) / 0.55)" stroke-width="0.8"/>' +
+          /* HELMET — red shell with dark visor cut-out */
+          '<g id="hg-helmet">' +
+            /* Outer dome — RED */
+            '<path fill="rgb(var(--rgb-red))" d="M491,0c-75,2-134,61-132,136,2,64,47,116,110,128,67,12,130-28,151-91C645,97,575-2,491,0Z"/>' +
+            /* Visor cut-out — dark coal so it reads as a face shield */
+            '<path fill="rgb(var(--rgb-coal))" d="M429,110c-57,13-105,55-121,109,35,24,87,24,133,0-8-37-12-74-12-109Z"/>' +
+            /* Visor highlight — pale stripe (glass reflection) */
+            '<path fill="none" stroke="rgb(var(--rgb-cream) / 0.45)" stroke-width="8" stroke-linecap="round" d="M454,81c-43,13-92,57-117,118"/>' +
+            '<path fill="none" stroke="rgb(var(--rgb-cream) / 0.30)" stroke-width="5" stroke-linecap="round" d="M431,126c-39,13-70,40-87,71"/>' +
+            /* Chin strap — steel cue */
+            '<path fill="none" stroke="rgb(var(--rgb-steel))" stroke-width="6" stroke-linecap="round" d="M385,232 Q495,266 605,232"/>' +
           '</g>'
         )
       : (
-          /* Bare head — ellipse with hair tuft + sunglasses line.
-             Distinctly smaller than the helmet so it reads "no helmet"
-             at speed. */
-          '<g>' +
-            '<ellipse cx="120" cy="18" rx="9" ry="11" fill="currentColor"/>' +
-            /* Hair tuft, blown back from the wind */
-            '<path fill="currentColor" d="M 112 11 Q 115 4 122 5 Q 128 6 130 12 L 129 18 Q 120 16 112 18 Z"/>' +
-            /* Ear */
-            '<ellipse cx="128" cy="18" rx="2" ry="2.5" fill="rgb(var(--rgb-coal) / 0.55)"/>' +
-            /* Sunglasses line — instant face cue */
-            '<rect x="111" y="16" width="11" height="2.2" fill="rgb(var(--rgb-coal) / 0.75)" rx="0.6"/>' +
+          /* BARE HEAD — cream circle, smaller than the helmet,
+             with a steel hair-tuft arc on top */
+          '<g id="hg-head">' +
+            '<circle fill="currentColor" cx="500" cy="120" r="86"/>' +
+            /* Hair tuft */
+            '<path fill="none" stroke="rgb(var(--rgb-steel))" stroke-width="22" stroke-linecap="round" d="M 430 70 Q 500 -10 570 70"/>' +
           '</g>'
         );
 
-    /* viewBox 0..220 wide, 0..130 tall.
-
-       Design rule: the BIKE BODY is one continuous flowing silhouette
-       (not stacked rectangles). The wheels are large and prominent —
-       they're what makes it read as a motorcycle. The rider sits on
-       top with proper anatomical proportions: the helmet is only
-       ~10% of the bike's total length, not a giant dome.
-
-       Reference points:
-         - Front wheel: (44, 96), r=22
-         - Rear wheel:  (180, 96), r=22
-         - Bike top edge: y ~ 44 (tank), y ~ 38 (tail tip)
-         - Bike bottom edge: y ~ 88 (belly pan)
-         - Seat top: y = 50, at x ~ 138-160
-         - Rider hip: (138, 50)
-         - Rider shoulder: (124, 26)
-         - Rider helmet: centred at (120, 18), 22 wide × 22 tall
-         - Front grip: (24, 56)
-
-       Layers (back-to-front): shadow → wheels → swing-arm →
-       rider rear leg → bike body silhouette → details (headlight,
-       seam, exhaust, fork, handlebar) → rider hip → torso → arm →
-       glove → neck → helmet. */
+    /* Layers (back-to-front), preserving the original artwork order:
+       shadow → wheels → frame → body fairing → fork+bars → windshield →
+       exhaust → seat-tail → small bike details → rider (head/torso/
+       arms/hips/legs) → tail-light polygon. */
     return (
-      '<svg viewBox="0 0 220 130" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">' +
+      '<svg viewBox="0 0 1115 782" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">' +
 
         /* Ground shadow */
-        '<ellipse cx="112" cy="124" rx="92" ry="3" fill="rgb(var(--rgb-coal))" opacity="0.5"/>' +
+        '<ellipse cx="514" cy="778" rx="500" ry="6" fill="rgb(var(--rgb-coal))" opacity="0.55"/>' +
 
-        /* ============ WHEELS — bold, prominent (this is what makes it read as a motorcycle) ============ */
-        /* REAR */
-        '<g class="hg-wheel">' +
-          /* tyre */
-          '<circle cx="180" cy="96" r="22" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="3.5"/>' +
-          /* rim */
-          '<circle cx="180" cy="96" r="13" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="1.6"/>' +
-          /* spokes (4-spoke X) */
-          '<g stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
-            '<line x1="180" y1="83" x2="180" y2="109"/>' +
-            '<line x1="167" y1="96" x2="193" y2="96"/>' +
-            '<line x1="171" y1="87" x2="189" y2="105"/>' +
-            '<line x1="171" y1="105" x2="189" y2="87"/>' +
+        '<g id="motorcycle">' +
+
+          /* ================= REAR WHEEL ================= */
+          '<g id="rear-wheel">' +
+            /* tyre */
+            '<circle fill="currentColor" cx="873" cy="626" r="156"/>' +
+            /* rim outer band */
+            '<circle fill="none" stroke="rgb(var(--rgb-coal))" stroke-width="21" cx="873" cy="626" r="119"/>' +
+            /* rim inner band (thick dark stroke = chunky rim) */
+            '<circle fill="none" stroke="rgb(var(--rgb-coal))" stroke-width="64" cx="873" cy="626" r="97"/>' +
+            /* hub */
+            '<circle fill="rgb(var(--rgb-coal))" opacity="0.9" cx="873" cy="626" r="42"/>' +
+            /* spokes — wrapped in .hg-wheel so they spin around their own bbox centre */
+            '<g class="hg-wheel">' +
+              '<g fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M873,626l105-34"/>' +
+                '<path d="M873,626l93,46"/>' +
+                '<path d="M873,626l14-114"/>' +
+                '<path d="M873,626l-102-54"/>' +
+                '<path d="M873,626l-110,43"/>' +
+                '<path d="M873,626l-7,117"/>' +
+              '</g>' +
+            '</g>' +
           '</g>' +
-          /* hub */
-          '<circle cx="180" cy="96" r="3.5" fill="currentColor"/>' +
-        '</g>' +
-        /* FRONT */
-        '<g class="hg-wheel">' +
-          '<circle cx="44" cy="96" r="22" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="3.5"/>' +
-          '<circle cx="44" cy="96" r="13" fill="rgb(var(--rgb-coal))" stroke="currentColor" stroke-width="1.6"/>' +
-          '<g stroke="currentColor" stroke-width="2" stroke-linecap="round">' +
-            '<line x1="44" y1="83" x2="44" y2="109"/>' +
-            '<line x1="31" y1="96" x2="57" y2="96"/>' +
-            '<line x1="35" y1="87" x2="53" y2="105"/>' +
-            '<line x1="35" y1="105" x2="53" y2="87"/>' +
+
+          /* ================= FRONT WHEEL ================= */
+          '<g id="front-wheel">' +
+            '<circle fill="currentColor" cx="155" cy="626" r="155"/>' +
+            '<circle fill="none" stroke="rgb(var(--rgb-coal))" stroke-width="21" cx="155" cy="626" r="118"/>' +
+            '<circle fill="none" stroke="rgb(var(--rgb-coal))" stroke-width="64" cx="155" cy="626" r="96"/>' +
+            '<circle fill="rgb(var(--rgb-coal))" opacity="0.9" cx="155" cy="626" r="46"/>' +
+            '<g class="hg-wheel">' +
+              '<g fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M155,626l116-37"/>' +
+                '<path d="M155,626l94,53"/>' +
+                '<path d="M155,626l21-118"/>' +
+                '<path d="M155,626l-108-53"/>' +
+                '<path d="M155,626l-111,49"/>' +
+                '<path d="M155,626l-6,118"/>' +
+              '</g>' +
+            '</g>' +
           '</g>' +
-          '<circle cx="44" cy="96" r="3.5" fill="currentColor"/>' +
+
+          /* ================= FRAME / SEAT-RAILS / SUBFRAME ================= */
+          '<g id="motorcycle-frame">' +
+            '<path fill="currentColor" d="M1021,547c-92-32-207-56-322-42l-123,55,105,88,164-5,133-16,43-80Z"/>' +
+            '<path fill="currentColor" d="M824,494l-180,92,115,99,131-43-66-148Z"/>' +
+            '<path fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M850,601l-234-127-206,124"/>' +
+            '<path fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M817,664l-234-74-302-7"/>' +
+            '<path fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M891,574l-235,33"/>' +
+            '<path fill="currentColor" d="M681,624c-75-22-148-22-199,13,41,64,152,75,219,41l-20-54Z"/>' +
+          '</g>' +
+
+          /* ================= BODY FAIRING / TANK ================= */
+          '<g id="motorcycle-body-fairing">' +
+            '<path fill="currentColor" d="M738,510c-113-79-238-127-364-118-97,8-208,52-294,121,23,20,54,34,91,40-22,20-51,32-96,38,34,31,85,50,148,54l107,89,242-6c26-47,41-97,45-144,35-21,73-40,121-74Z"/>' +
+            '<path fill="currentColor" d="M411,385c-87-18-187-3-277,45,41,8,84,22,122,52,49-29,99-59,155-97Z"/>' +
+            '<path fill="currentColor" d="M482,402c-87-4-167,28-230,91,82,12,162,19,243,11,31-26,27-69-13-102Z"/>' +
+            /* darker accents — separation/shading lines */
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M583,521c-83-65-182-86-280-55,53,22,141,33,234,29l46,26Z"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M443,548c-80-25-185-20-262,11,86,11,171,18,268,17l-6-28Z"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M558,622c-80-18-165-13-241,20,61,38,175,34,250,8l-9-28Z"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M259,486c-55-28-110-34-163-17,33,22,80,37,144,43l19-26Z"/>' +
+          '</g>' +
+
+          /* ================= FRONT FORK + HANDLEBARS ================= */
+          '<g id="front-fork-handlebars">' +
+            '<path fill="currentColor" d="M241,477l-75,16,50,163,39-8-14-171Z"/>' +
+            '<path fill="currentColor" d="M198,476l-39,11-25,163,32,7,32-181Z"/>' +
+            '<path fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M363,433c-64-12-104-18-148-31"/>' +
+            '<path fill="none" stroke="currentColor" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" d="M253,403l-67-16"/>' +
+            '<path fill="currentColor" d="M217,373c-33-8-60-2-83,15,27,21,63,25,105,13l-22-28Z"/>' +
+          '</g>' +
+
+          /* ================= WINDSHIELD ================= */
+          '<g id="windshield">' +
+            '<path fill="none" stroke="currentColor" stroke-width="12" stroke-linejoin="round" d="M320,374l-55-90-76,79,131,11Z"/>' +
+            '<path fill="none" stroke="rgb(var(--rgb-cream) / 0.25)" stroke-width="4" stroke-linejoin="round" d="M309,366l-46-65-57,58,103,7Z"/>' +
+          '</g>' +
+
+          /* ================= EXHAUST ================= */
+          '<g id="exhaust">' +
+            '<path fill="currentColor" d="M727,667c-71-14-137-2-180,28,67,28,142,29,200,1l-20-29Z"/>' +
+            '<ellipse fill="rgb(var(--rgb-coal))" opacity="0.7" cx="726" cy="677" rx="19" ry="31" transform="translate(-124.9 1188.3) rotate(-74)"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M688,661c-50-3-96,6-130,28,59,6,103,1,142-17l-12-11Z"/>' +
+          '</g>' +
+
+          /* ================= SEAT + TAIL ================= */
+          '<g id="seat-tail">' +
+            '<path fill="currentColor" d="M1042,337l-215-12c-45,27-91,88-132,147,104,4,208-12,300-50l47-85Z"/>' +
+            '<path fill="currentColor" d="M1078,385l-239-14-72,58c118,16,223,5,333-22l-22-22Z"/>' +
+            '<path fill="currentColor" d="M1102,442l-119-30-12,47,144,24-13-41Z"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M1005,338l-164,7-54,50c80-6,150-22,218-57Z"/>' +
+          '</g>' +
+
+          /* ================= SMALL BIKE DETAILS ================= */
+          '<g id="small-bike-details">' +
+            '<circle fill="rgb(var(--rgb-coal))" opacity="0.6" cx="547" cy="601" r="36"/>' +
+            '<circle fill="rgb(var(--rgb-coal))" stroke="rgb(var(--rgb-coal) / 0.7)" stroke-width="3" cx="547" cy="601" r="25"/>' +
+            '<circle fill="rgb(var(--rgb-coal))" opacity="0.55" cx="492" cy="624" r="30"/>' +
+            '<g fill="none" stroke="rgb(var(--rgb-coal))" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="0.6">' +
+              '<path d="M635,486c-64-21-120-22-169,3"/>' +
+              '<path d="M482,433c-66,4-120,28-167,73"/>' +
+              '<path d="M396,586c-68-11-139-8-202,10"/>' +
+              '<path d="M337,732l-55-85"/>' +
+              '<path d="M177,513c-41,9-71,26-91,53"/>' +
+            '</g>' +
+          '</g>' +
+
         '</g>' +
 
-        /* ============ SWING-ARM ============ */
-        '<path d="M 124 84 L 178 96" stroke="currentColor" stroke-width="6" fill="none" stroke-linecap="round"/>' +
+        /* ============================ RIDER ============================ */
+        '<g id="rider">' +
 
-        /* ============ Rider REAR LEG (boot peeks behind tail) ============ */
-        '<path fill="currentColor" d="M 158 76 L 180 76 L 188 84 L 188 90 L 162 90 L 154 84 Z"/>' +
-        '<rect x="180" y="80" width="8" height="6" fill="rgb(var(--rgb-coal) / 0.6)" rx="1"/>' +
+          /* HEAD or HELMET (top of rider, drawn first within the rider
+             group so torso/arms/etc. layer on top where they overlap) */
+          head +
 
-        /* =====================================================
-           BIKE BODY — ONE flowing silhouette path.
-           Goes clockwise from the front-bottom of the fairing,
-           up over the nose, across the tank, down to the seat,
-           up the tail to a sharp tip, back down and around under
-           the seat, along the belly pan, back to the start.
-           ===================================================== */
-        '<path fill="currentColor" d="' +
-          'M 28 86 ' +              /* front-bottom of fairing */
-          'L 30 70 ' +              /* up the front edge */
-          'L 22 56 ' +              /* nose tip pointing forward */
-          'L 32 46 ' +              /* up to top of nose */
-          'L 56 44 ' +              /* across top of fairing */
-          'Q 78 38 100 40 ' +       /* tank rises */
-          'L 134 40 ' +             /* tank top */
-          'Q 152 40 162 50 ' +      /* tank-to-seat curve */
-          'L 168 50 ' +             /* seat front */
-          'Q 184 46 196 36 ' +      /* tail rises sharply */
-          'L 202 38 ' +             /* sharp tail tip */
-          'L 202 56 ' +             /* tail back-edge down */
-          'L 192 70 ' +             /* tail bottom curl */
-          'L 168 74 ' +             /* under-seat going forward */
-          'L 156 80 ' +             /* down to engine bottom */
-          'L 64 84 ' +              /* belly pan flat bottom */
-          'L 48 88 ' +              /* belly pan dip in front */
-          'Z"/>' +
+          /* TORSO */
+          '<g id="torso">' +
+            '<path fill="currentColor" d="M641,227c-51-23-112-3-147,47-30,44-40,115-12,172,26,53,87,73,143,51,50-20,80-69,73-125-6-55-17-117-57-145Z"/>' +
+            '<path fill="rgb(var(--rgb-coal))" opacity="0.55" d="M632,255c-43-18-91-4-117,34,39,2,85-5,130-20l-13-14Z"/>' +
+          '</g>' +
 
-        /* Headlight — single dark eye in the fairing nose */
-        '<ellipse cx="32" cy="60" rx="6" ry="3.5" fill="rgb(var(--rgb-coal))" transform="rotate(-18 32 60)"/>' +
-        '<ellipse cx="34" cy="59" rx="2.2" ry="1" fill="rgb(var(--rgb-cream) / 0.45)" transform="rotate(-18 34 59)"/>' +
+          /* LEFT ARM */
+          '<g id="left-arm">' +
+            '<path fill="currentColor" d="M534,264c-41,29-77,63-113,98,14,21,31,34,55,39,41-36,76-74,110-111-12-19-28-28-52-26Z"/>' +
+            '<path fill="currentColor" d="M438,358c-33,22-67,40-101,53,5,21,16,36,37,46,41-13,78-31,110-56-11-22-25-36-46-43Z"/>' +
+          '</g>' +
 
-        /* Tank seam (single subtle line — defines the tank silhouette) */
-        '<path d="M 76 52 Q 110 48 154 52" stroke="rgb(var(--rgb-coal) / 0.45)" stroke-width="1.2" fill="none"/>' +
+          /* RIGHT ARM (with glove on grip) */
+          '<g id="right-arm">' +
+            '<path fill="currentColor" d="M507,282c-40,43-84,84-142,118,11,25,27,40,50,48,54-26,105-70,144-126-9-21-26-36-52-40Z"/>' +
+            '<path fill="currentColor" d="M383,396c-42,6-81,8-116,1-9,17-8,33,4,49,48,12,92,11,139,0-5-25-14-41-27-50Z"/>' +
+            '<circle fill="currentColor" cx="270" cy="421" r="17"/>' +
+          '</g>' +
 
-        /* Engine separation line — divides tank/seat from belly pan */
-        '<path d="M 64 78 Q 110 74 156 78" stroke="rgb(var(--rgb-coal) / 0.4)" stroke-width="1" fill="none"/>' +
+          /* HIPS */
+          '<g id="hips">' +
+            '<path fill="currentColor" d="M650,471c-61-16-121,0-161,43,30,42,105,55,169,19,18-22,14-45-8-62Z"/>' +
+          '</g>' +
 
-        /* Front fork going up to handlebar */
-        '<path d="M 44 96 L 38 70 L 30 60" stroke="currentColor" stroke-width="3.5" fill="none" stroke-linecap="round"/>' +
-        /* Handlebar grip */
-        '<path d="M 30 60 L 22 56" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+          /* LEFT LEG */
+          '<g id="left-leg">' +
+            '<path fill="currentColor" d="M654,508c-53,16-95,46-131,91,18,24,45,35,74,25,42-32,76-67,93-105-9-11-23-15-36-11Z"/>' +
+            '<path fill="currentColor" d="M600,603c42,24,83,49,119,78,22-9,33-24,32-45-36-35-80-63-127-81-22,12-35,28-24,48Z"/>' +
+          '</g>' +
 
-        /* Exhaust pipe (low and to the rear) */
-        '<path fill="currentColor" d="M 168 78 L 204 80 L 212 84 L 212 90 L 204 92 L 168 86 Z"/>' +
-        '<rect x="206" y="85" width="6" height="4" rx="1" fill="rgb(var(--rgb-coal) / 0.8)"/>' +
+          /* RIGHT LEG */
+          '<g id="right-leg">' +
+            '<path fill="currentColor" d="M525,505c-46,27-87,62-121,103,15,24,41,36,69,27,43-28,80-63,104-105-12-19-30-28-52-25Z"/>' +
+            '<path fill="currentColor" d="M469,617c-62,10-121,13-180,9-13,20-10,40,7,57,69,12,132,5,192-18,7-23,0-40-19-48Z"/>' +
+          '</g>' +
 
-        /* ============ RIDER ============ */
+        '</g>' +
 
-        /* HIP firmly on the seat */
-        '<ellipse cx="138" cy="50" rx="14" ry="7" fill="currentColor"/>' +
-        /* Front THIGH (just visible above the tank) */
-        '<path fill="currentColor" d="M 130 48 L 158 48 L 166 60 L 152 64 L 128 58 Z"/>' +
-        /* Knee cap */
-        '<circle cx="160" cy="56" r="5" fill="currentColor"/>' +
-
-        /* TORSO / BACK — moderate forward lean. Hip → shoulder. */
-        '<path fill="currentColor" d="' +
-          'M 134 48 ' +
-          'L 142 30 ' +
-          'Q 134 18 124 18 ' +
-          'L 118 26 ' +
-          'Q 120 38 130 52 Z"/>' +
-        /* Spine highlight */
-        '<path d="M 124 24 Q 132 36 140 50" stroke="rgb(var(--rgb-coal) / 0.3)" stroke-width="1" fill="none"/>' +
-
-        /* SHOULDER */
-        '<ellipse cx="124" cy="26" rx="11" ry="9" fill="currentColor"/>' +
-
-        /* UPPER ARM — shoulder to elbow */
-        '<path fill="currentColor" d="M 120 26 L 84 44 L 78 40 L 116 18 Z"/>' +
-        /* ELBOW */
-        '<circle cx="80" cy="42" r="4.5" fill="currentColor"/>' +
-        /* FOREARM — elbow to glove on the bar */
-        '<path fill="currentColor" d="M 82 40 L 28 56 L 22 52 L 80 32 Z"/>' +
-        /* GLOVE on grip */
-        '<ellipse cx="26" cy="56" rx="6" ry="4" fill="currentColor"/>' +
-        '<rect x="20" y="54" width="10" height="2" rx="1" fill="rgb(var(--rgb-coal) / 0.5)"/>' +
-
-        /* NECK — bridges shoulder to helmet */
-        '<path fill="currentColor" d="M 116 18 L 128 18 L 130 28 L 114 28 Z"/>' +
-
-        /* ============ HEAD / HELMET (top layer) ============ */
-        head +
+        /* Tail accent polygon (small detail near the seat) */
+        '<polygon fill="currentColor" points="933.5 513 831 513 831 451.9 949.9 433 933.5 513"/>' +
 
       '</svg>'
     );
