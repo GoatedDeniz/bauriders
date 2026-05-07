@@ -1363,6 +1363,22 @@
     text-transform: uppercase;
   }
 
+  /* Short-viewport layout (landscape phones, mostly): the standard
+     54%-tall road becomes too short for two lanes, so we expand it to
+     72% by stealing height from sky and curb. Rider sprites are also
+     scaled down so the lane gap stays comfortable. */
+  @media (max-height: 520px) {
+    .hg-sky       { height: 8%; }
+    .hg-road      { top: 8%; height: 72%; }
+    .hg-playfield { top: 8%; height: 72%; }
+    .hg-curb      { top: 80%; }
+    .hg-curb-hud  { top: 80%; padding: 6px 12px; }
+    .hg-rider     { width: 110px; height: 77px; }
+  }
+  @media (max-height: 520px) and (min-width: 768px) {
+    .hg-rider     { width: 156px; height: 109px; }
+  }
+
   /* RIDER (absolutely positioned within .hg-playfield).
      Aspect ~1.43:1 to match the imported motorcycle SVG viewBox
      (1115×782). Mobile sprite is at least 90px tall so helmet vs.
@@ -3599,7 +3615,13 @@ window.HelmetGame = (function () {
     state.round += 1;
     const r = state.round;
     const total       = BASE_RIDERS + (r - 1);
-    const speed       = Math.min(SPEED_CAP, BASE_SPEED * Math.pow(SPEED_MULT, r - 1));
+    /* Make sure we have a fresh field measurement before computing speed —
+       the width scale depends on it. */
+    if (!state.layout.fieldW) measureField();
+    const ws          = widthScale(state.layout.fieldW);
+    const baseSpd     = BASE_SPEED * ws;
+    const capSpd      = SPEED_CAP  * ws;
+    const speed       = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, r - 1));
     const gapMs       = Math.max(GAP_FLOOR, BASE_GAP_MS * Math.pow(GAP_MULT, r - 1));
     const ratio       = Math.min(NO_HELMET_CAP, NO_HELMET_BASE + (r - 1) * NO_HELMET_DRIFT);
 
@@ -3625,6 +3647,8 @@ window.HelmetGame = (function () {
     state.wave.missed     = 0;
     state.wave.wrongFlags = 0;
     state.wave.speed      = speed;
+    state.wave.baseSpeed  = baseSpd;
+    state.wave.capSpeed   = capSpd;
     state.wave.gapMs      = gapMs;
     state.wave.ratio      = ratio;
     state.wave.lastLane   = 1;
@@ -3651,11 +3675,20 @@ window.HelmetGame = (function () {
     const rect = els.playfield.getBoundingClientRect();
     state.layout.fieldW = rect.width;
     state.layout.fieldH = rect.height;
-    /* CSS-driven rider sizes — keep in sync with .hg-rider media queries. */
-    const wide  = window.matchMedia('(min-width: 1280px)').matches;
-    const big   = window.matchMedia('(min-width: 768px)').matches;
-    const cssRiderW = wide ? 232 : big ? 188 : 132;
-    const cssRiderH = wide ? 162 : big ? 132 :  92;
+    /* CSS-driven rider sizes — keep in sync with .hg-rider media queries.
+       Short viewports (landscape phones) get smaller sprites so two lanes
+       still fit when vertical room is tight. */
+    const shortVP = window.matchMedia('(max-height: 520px)').matches;
+    const wide    = window.matchMedia('(min-width: 1280px)').matches;
+    const big     = window.matchMedia('(min-width: 768px)').matches;
+    let cssRiderW, cssRiderH;
+    if (shortVP) {
+      cssRiderW = big ? 156 : 110;
+      cssRiderH = big ? 109 :  77;
+    } else {
+      cssRiderW = wide ? 232 : big ? 188 : 132;
+      cssRiderH = wide ? 162 : big ? 132 :  92;
+    }
     state.layout.riderH = cssRiderH;
     state.layout.riderW = cssRiderW;
 
@@ -3681,10 +3714,41 @@ window.HelmetGame = (function () {
     }
   }
 
-  /* Recompute layout if the viewport resizes mid-game */
-  window.addEventListener('resize', () => {
-    if (state.open && state.sim.running) measureField();
-  });
+  /* Speed needs to scale with playfield width so a 375px-wide phone
+     doesn't make a bike cross in 1.4s while a 1200px desktop gives 4.6s.
+     Keeps the perceived crossing time roughly constant across sizes,
+     clamped so very small or very large screens still feel reasonable. */
+  function widthScale(fieldW) {
+    return Math.min(1, Math.max(0.45, fieldW / 1100));
+  }
+
+  /* Resize / orientation change: re-measure, reposition any in-flight
+     riders to the new lane Ys (so they don't get stranded between lanes
+     when landscape→portrait swaps the layout), and recompute the wave's
+     pixel speed for the new playfield width. */
+  function handleHGResize() {
+    if (!state.open || !state.sim.running) return;
+    measureField();
+    const layout = state.layout;
+    state.riders.forEach(r => {
+      r.width  = layout.riderW;
+      r.height = layout.riderH;
+      r.y      = layout.laneY[r.lane] || 0;
+      if (r.el) r.el.style.transform =
+        'translate3d(' + r.x.toFixed(1) + 'px,' + r.y.toFixed(1) + 'px,0)';
+    });
+    const ws       = widthScale(layout.fieldW);
+    const baseSpd  = BASE_SPEED * ws;
+    const capSpd   = SPEED_CAP  * ws;
+    const newSpeed = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, Math.max(1, state.round) - 1));
+    state.wave.speed     = newSpeed;
+    state.wave.baseSpeed = baseSpd;
+    state.wave.capSpeed  = capSpd;
+    setRoadScrollSpeed(newSpeed);
+    updateSpeedometer(newSpeed);
+  }
+  window.addEventListener('resize', handleHGResize);
+  window.addEventListener('orientationchange', handleHGResize);
 
   function setRoadScrollSpeed(pxPerSec) {
     if (!els.roadLine) return;
@@ -3694,7 +3758,11 @@ window.HelmetGame = (function () {
   }
 
   function updateSpeedometer(pxPerSec) {
-    const t01 = Math.max(0, Math.min(1, (pxPerSec - BASE_SPEED) / (SPEED_CAP - BASE_SPEED)));
+    /* Use the current wave's scaled base/cap so the needle still travels
+       the full arc on narrow viewports (where speeds are physically lower). */
+    const base = state.wave.baseSpeed || BASE_SPEED;
+    const cap  = state.wave.capSpeed  || SPEED_CAP;
+    const t01 = Math.max(0, Math.min(1, (pxPerSec - base) / Math.max(1, cap - base)));
     const angle = -78 + 156 * t01;
     if (els.rpmNeedle) els.rpmNeedle.style.transform = 'rotate(' + angle.toFixed(1) + 'deg)';
     if (els.rpmFill) {
