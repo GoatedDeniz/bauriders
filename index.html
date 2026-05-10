@@ -1305,27 +1305,42 @@
   }
   .hg-road::before { top: 4px; }
   .hg-road::after  { bottom: 4px; }
+  /* The dashed centre line. The OUTER element only positions/clips —
+     the moving gradient lives on ::before so we can animate transform
+     instead of background-position. Translating a layer is GPU-composited
+     and stutter-free on mobile; background-position forces a full paint
+     every frame and stutters badly on lower-end phones. */
   .hg-road-line {
     position: absolute; left: 0; top: 50%; right: 0; height: 4px;
     transform: translateY(-50%);
+    overflow: hidden;
+  }
+  .hg-road-line::before {
+    content: '';
+    position: absolute; top: 0; bottom: 0; left: 0;
+    /* +64px so the leftward translate of one cycle never reveals the right edge */
+    width: calc(100% + 64px);
     background-image: repeating-linear-gradient(
       90deg,
       rgb(var(--rgb-cream) / 0.6) 0 28px,
       transparent 28px 64px);
-    /* leftward scroll — animation-duration is set inline by JS based on speed */
-    animation: hgRoadScroll 1.2s linear infinite;
-    will-change: background-position;
+    /* Duration fed in by JS via setProperty('--hg-road-line-dur', '0.42s') etc. */
+    animation: hgRoadLineSlide var(--hg-road-line-dur, 1.2s) linear infinite;
+    will-change: transform;
+    transform: translate3d(0, 0, 0);
   }
-  .hg-road.paused .hg-road-line { animation-play-state: paused; }
-  @keyframes hgRoadScroll {
-    from { background-position-x: 0; }
-    to   { background-position-x: -64px; }
+  .hg-road.paused .hg-road-line::before { animation-play-state: paused; }
+  @keyframes hgRoadLineSlide {
+    from { transform: translate3d(0, 0, 0); }
+    to   { transform: translate3d(-64px, 0, 0); }
   }
 
-  /* PLAYFIELD — overlays the road, holds rider DOM elements */
+  /* PLAYFIELD — overlays the road, holds rider DOM elements.
+     pointer-events: auto so we can capture taps in the empty space
+     between riders too (the centralised tap router handles them). */
   .hg-playfield {
     position: absolute; left: 0; right: 0; top: 18%; height: 54%;
-    pointer-events: none; /* riders re-enable this on themselves */
+    pointer-events: auto;
   }
 
   /* CURB / SHOULDER (bottom ~28%) — holds the HUD */
@@ -3665,6 +3680,7 @@ window.HelmetGame = (function () {
 
     showScreen('play');
     measureField();
+    ensurePlayfieldTap();
     setRoadScrollSpeed(speed);
     updateSpeedometer(speed);
     startSim();
@@ -3791,9 +3807,10 @@ window.HelmetGame = (function () {
 
   function setRoadScrollSpeed(pxPerSec) {
     if (!els.roadLine) return;
-    /* The line's pattern repeats every 64px; one cycle = 64 / speed seconds. */
+    /* The line's pattern repeats every 64px; one cycle = 64 / speed seconds.
+       The animation now lives on ::before, controlled via a CSS variable. */
     const dur = Math.max(0.18, 64 / Math.max(1, pxPerSec));
-    els.roadLine.style.animationDuration = dur.toFixed(3) + 's';
+    els.roadLine.style.setProperty('--hg-road-line-dur', dur.toFixed(3) + 's');
   }
 
   function updateSpeedometer(pxPerSec) {
@@ -3952,15 +3969,65 @@ window.HelmetGame = (function () {
     };
     el.style.transform = 'translate3d(' + rider.x.toFixed(1) + 'px,' + rider.y.toFixed(1) + 'px,0)';
 
-    /* pointerdown for snappier mobile response */
-    const onTap = (ev) => {
-      ev.preventDefault();
-      onRiderTap(rider);
-    };
-    el.addEventListener('pointerdown', onTap);
+    /* No per-rider pointerdown handler — a single centralised listener on
+       the playfield (see ensurePlayfieldTap) does coordinate-based hit
+       detection and picks the closest rider, so one wide-finger tap can
+       never accidentally tag two adjacent bikes. */
 
     els.playfield.appendChild(el);
     state.riders.push(rider);
+  }
+
+  /* ============ Centralised tap routing ============================
+     One pointerdown listener on the playfield disambiguates the hit so a
+     wide finger across two close riders can't trigger both. We compute
+     the tap point in playfield-local coords, then walk the live riders
+     and pick the *closest* one whose bounding box contains the tap.
+     `_playfieldTapAttached` keeps it idempotent — measureField can be
+     called repeatedly and we still only attach the listener once. */
+  let _playfieldTapAttached = false;
+  function ensurePlayfieldTap() {
+    if (_playfieldTapAttached) return;
+    refs();
+    if (!els.playfield) return;
+    els.playfield.addEventListener('pointerdown', handlePlayfieldTap);
+    _playfieldTapAttached = true;
+  }
+
+  function handlePlayfieldTap(ev) {
+    if (!state.sim.running || state.sim.paused) return;
+    /* Mouse: only the primary button counts. Touch and pen don't have
+       buttons in the same sense, so we let those through. */
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+
+    const rect = els.playfield.getBoundingClientRect();
+    const tapX = ev.clientX - rect.left;
+    const tapY = ev.clientY - rect.top;
+
+    let closest = null;
+    let closestDist = Infinity;
+    for (let i = 0; i < state.riders.length; i++) {
+      const r = state.riders[i];
+      if (r.tagged || r.exited) continue;
+      const cx = r.x + r.width  / 2;
+      const cy = r.y + r.height / 2;
+      const dx = tapX - cx;
+      const dy = tapY - cy;
+      /* Small +4px slack on each side keeps tap-targets generous without
+         overlapping into the neighbouring lane. */
+      if (Math.abs(dx) > r.width  / 2 + 4) continue;
+      if (Math.abs(dy) > r.height / 2 + 4) continue;
+      const dist2 = dx * dx + dy * dy;
+      if (dist2 < closestDist) {
+        closest = r;
+        closestDist = dist2;
+      }
+    }
+
+    if (closest) {
+      ev.preventDefault();
+      onRiderTap(closest);
+    }
   }
 
   function onRiderTap(rider) {
