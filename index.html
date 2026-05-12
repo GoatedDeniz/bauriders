@@ -2853,6 +2853,8 @@ function renderPastEvents() {
  *  LANGUAGE / VIEW / TABS / MOBILE
  * ================================================================ */
 let currentLang = 'en';
+const _BAU_LANG_KEY = '_bauLang';
+
 function setLang(lang) {
   currentLang = lang;
   document.documentElement.lang = lang;
@@ -2862,7 +2864,44 @@ function setLang(lang) {
   });
   document.querySelectorAll('.lang-en').forEach(b => b.classList.toggle('active', lang === 'en'));
   document.querySelectorAll('.lang-tr').forEach(b => b.classList.toggle('active', lang === 'tr'));
+  /* Persist so manual toggles survive reloads and override auto-detect. */
+  try { localStorage.setItem(_BAU_LANG_KEY, lang); } catch (e) {}
 }
+
+/* Initial language pick:
+   1. Honor an explicit prior choice in localStorage (manual EN/TR toggle).
+   2. Otherwise look at the device's preferred languages — any 'tr'/'tr-TR'
+      etc. opens the site in Turkish; everything else falls back to English.
+   The English path skips setLang entirely since the DOM already renders
+   the data-en values verbatim, avoiding the visible flash of a swap. */
+function _bauPickInitialLang() {
+  try {
+    const saved = localStorage.getItem(_BAU_LANG_KEY);
+    if (saved === 'en' || saved === 'tr') return saved;
+  } catch (e) {}
+  const list = (navigator.languages && navigator.languages.length)
+    ? navigator.languages
+    : [navigator.language || ''];
+  for (let i = 0; i < list.length; i++) {
+    if (typeof list[i] === 'string' && list[i].toLowerCase().indexOf('tr') === 0) return 'tr';
+  }
+  return 'en';
+}
+
+/* Run the language pick once the DOM has fully parsed — the helmet-check
+   overlay (with its own [data-en] elements) sits AFTER this <script>, so
+   firing before DOMContentLoaded would leave that overlay in English. */
+(function _bauInitLang() {
+  function go() {
+    const initial = _bauPickInitialLang();
+    if (initial !== 'en') setLang(initial);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', go, { once: true });
+  } else {
+    go();
+  }
+})();
 
 function showView(view) {
   document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
@@ -3529,6 +3568,14 @@ window.HelmetGame = (function () {
     if (!state.open) return;
     stopSim();
     clearRiders();
+    /* Defensive reset — beginGame/retry already wipe these on the next
+       play, but doing it here too guarantees no path can carry round /
+       score / lives state across a quit-and-reopen. The user reported
+       round 1 occasionally feeling like round 2 after closing in one
+       theme and reopening in another — this seals that off. */
+    state.round = 0;
+    state.score = 0;
+    state.lives = 3;
     state.open = false;
     els.root.classList.add('fading');
     setTimeout(() => {
@@ -3636,7 +3683,12 @@ window.HelmetGame = (function () {
     const ws          = widthScale(state.layout.fieldW);
     const baseSpd     = BASE_SPEED * ws;
     const capSpd      = SPEED_CAP  * ws;
-    const speed       = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, r - 1));
+    /* Desktop bumps the speed curve up by one round — the user's "ideal"
+       round-1 pace is what currently lands on round 2. Mobile keeps the
+       original curve. Gap and helmet ratio still track the real round so
+       only the velocity is shifted, not the wave-shape. */
+    const speedRound  = (state.layout.fieldW >= 768) ? r + 1 : r;
+    const speed       = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, speedRound - 1));
     const gapMs       = Math.max(GAP_FLOOR, BASE_GAP_MS * Math.pow(GAP_MULT, r - 1));
     const ratio       = Math.min(NO_HELMET_CAP, NO_HELMET_BASE + (r - 1) * NO_HELMET_DRIFT);
 
@@ -3748,19 +3800,25 @@ window.HelmetGame = (function () {
      bike sprites have markedly higher contrast — which makes them visually
      easier to track and "feel slower" even at the same crossing time. The
      dark-mode pace is the reference (user-confirmed "perfect"); this
-     multiplier nudges light-mode pace up to match the perceived urgency. */
-  const LIGHT_MODE_SPEED_BONUS = 1.15;
+     multiplier nudges light-mode pace up to match the perceived urgency.
+     Earlier values of 1.15 were too gentle on desktop where the contrast
+     effect is most pronounced — round 1 still felt sluggish there. 1.4
+     puts a 1280px laptop at ~3.0s crossing in light mode (vs ~4.2s in
+     dark) which lands closer to the dark-mode FEEL. */
+  const LIGHT_MODE_SPEED_BONUS = 1.4;
 
   function widthScale(fieldW) {
     /* Linear with a 0.45 floor (so super-narrow phones don't crawl) and a
-       2.5 ceiling (sanity cap for ultrawide screens). Crossing time stays
-       roughly constant across screen sizes at round 1 — and SPEED_MULT
-       compounds each round on top of it, so the wave that feels gentle
-       at round 1 is the intended "tutorial" pace; round 5 is already
-       1.5× faster, round 10 is ~2.85×. */
+       2.5 ceiling (sanity cap for ultrawide screens). SPEED_MULT compounds
+       each round on top of it, so round 1 is the intended "tutorial" pace.
+       On desktop both themes must use IDENTICAL math — the user confirmed
+       the dark-mode pace as the universal reference. The light-mode bonus
+       only applies below 768 px (i.e. phones); anything wider — tablets,
+       laptops, desktops — runs through the same formula in either theme. */
     const linear = Math.max(0.45, fieldW / 1100);
-    const themed = isLightModeActive() ? linear * LIGHT_MODE_SPEED_BONUS : linear;
-    return Math.min(2.5 * LIGHT_MODE_SPEED_BONUS, themed);
+    const applyBonus = isLightModeActive() && fieldW < 768;
+    const bonus = applyBonus ? LIGHT_MODE_SPEED_BONUS : 1;
+    return Math.min(2.5 * bonus, linear * bonus);
   }
 
   /* Resize / orientation change: re-measure, reposition any in-flight
@@ -3778,10 +3836,15 @@ window.HelmetGame = (function () {
       if (r.el) r.el.style.transform =
         'translate3d(' + r.x.toFixed(1) + 'px,' + r.y.toFixed(1) + 'px,0)';
     });
-    const ws       = widthScale(layout.fieldW);
-    const baseSpd  = BASE_SPEED * ws;
-    const capSpd   = SPEED_CAP  * ws;
-    const newSpeed = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, Math.max(1, state.round) - 1));
+    const ws         = widthScale(layout.fieldW);
+    const baseSpd    = BASE_SPEED * ws;
+    const capSpd     = SPEED_CAP  * ws;
+    /* Match the desktop +1 round shift used in startWave so a theme flip
+       or orientation change mid-wave doesn't bounce the speed back to
+       the un-shifted curve. */
+    const baseRound  = Math.max(1, state.round);
+    const speedRound = (layout.fieldW >= 768) ? baseRound + 1 : baseRound;
+    const newSpeed   = Math.min(capSpd, baseSpd * Math.pow(SPEED_MULT, speedRound - 1));
     state.wave.speed     = newSpeed;
     state.wave.baseSpeed = baseSpd;
     state.wave.capSpeed  = capSpd;
