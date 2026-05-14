@@ -2483,6 +2483,7 @@ const HERO_SLIDES = [
     desc_en:  "At our 2-day camp in Kilyos, enjoy unlimited 3 meals, group games, a motor showroom, and DJ entertainment!",
     desc_tr:  "Kilyos'ta düzenlediğimiz 2 günlük kampımızda sınırsız 3 öğün yemek, grup oyınları, motor showroom'u ve DJ eğlencesi!",
     cta_en:   "RSVP →",                   cta_tr:   "KATIL →",
+    cta_url:  "https://forms.gle/rv6DbxUihsJdVyok9",
   },
   {
     photo: "",                                                          // ← Slide 3 image
@@ -2561,7 +2562,7 @@ const UPCOMING_EVENTS = [
     loc_en:  "Kilyos",                              loc_tr: "Kilyos",
     desc_en: "At our 2-day camp in Kilyos, enjoy unlimited 3 meals, group games, a motor showroom, and DJ entertainment!",
     desc_tr: "Kilyos'ta düzenlediğimiz 2 günlük kampımızda sınırsız 3 öğün yemek, grup oyunları, motor showroom'u ve DJ eğlencesi!",
-    rsvp_url: "#",
+    rsvp_url: "https://forms.gle/rv6DbxUihsJdVyok9",
   },
   {
     date: "NOV 8-9", year: "2026",
@@ -2694,7 +2695,10 @@ function renderHeroSlides() {
                 <div class="mono text-red text-sm md:text-base" data-en="${esc(s.meta_en)}" data-tr="${esc(s.meta_tr)}">${esc(s.meta_en)}</div>
               </div>
               <p class="mt-3 md:mt-5 max-w-[540px] text-cream/85 text-sm md:text-lg leading-relaxed"><span data-en="${esc(s.desc_en)}" data-tr="${esc(s.desc_tr)}">${esc(s.desc_en)}</span></p>
-              <div class="mt-4 md:mt-7"><a href="#events" onclick="showView('events'); return false;" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a></div>
+              <div class="mt-4 md:mt-7">${s.cta_url
+                ? `<a href="${esc(s.cta_url)}" target="_blank" rel="noopener noreferrer" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a>`
+                : `<a href="#events" onclick="showView('events'); return false;" class="btn-primary"><span data-en="${esc(s.cta_en)}" data-tr="${esc(s.cta_tr)}">${esc(s.cta_en)}</span></a>`
+              }</div>
             </div>
             <div class="lg:col-span-5 h-[150px] sm:h-[220px] lg:h-full lg:min-h-[220px]">${photoSlot}</div>
           </div>
@@ -2766,7 +2770,7 @@ function renderUpcoming() {
         <p class="text-cream/70 mt-3 text-sm md:text-base max-w-[620px]"><span data-en="${esc(e.desc_en)}" data-tr="${esc(e.desc_tr)}">${esc(e.desc_en)}</span></p>
       </div>
       <div class="md:col-span-3 md:justify-self-end">
-        <a href="${esc(e.rsvp_url || '#')}" class="btn-small"><span data-en="RSVP →" data-tr="KATIL →">RSVP →</span></a>
+        <a href="${esc(e.rsvp_url || '#')}"${e.rsvp_url && e.rsvp_url !== '#' ? ' target="_blank" rel="noopener noreferrer"' : ''} class="btn-small"><span data-en="RSVP →" data-tr="KATIL →">RSVP →</span></a>
       </div>
     </article>`).join('');
 }
