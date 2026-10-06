@@ -2916,7 +2916,10 @@ function renderPastEvents() {
 let currentLang = 'en';
 const _BAU_LANG_KEY = '_bauLang';
 
-function setLang(lang) {
+/* persist=true  -> the visitor clicked EN/TR, remember it forever
+   persist=false -> we only auto-detected, so DON'T write it down: that way a
+   visitor who later changes their phone's language gets the new one. */
+function setLang(lang, persist = true) {
   currentLang = lang;
   document.documentElement.lang = lang;
   document.querySelectorAll('[data-en]').forEach(el => {
@@ -2926,7 +2929,7 @@ function setLang(lang) {
   document.querySelectorAll('.lang-en').forEach(b => b.classList.toggle('active', lang === 'en'));
   document.querySelectorAll('.lang-tr').forEach(b => b.classList.toggle('active', lang === 'tr'));
   /* Persist so manual toggles survive reloads and override auto-detect. */
-  try { localStorage.setItem(_BAU_LANG_KEY, lang); } catch (e) {}
+  if (persist) { try { localStorage.setItem(_BAU_LANG_KEY, lang); } catch (e) {} }
 }
 
 /* Initial language pick:
@@ -2955,8 +2958,14 @@ function _bauPickInitialLang() {
 (function _bauInitLang() {
   function go() {
     const initial = _bauPickInitialLang();
-    if (initial !== 'en') setLang(initial);
+    if (initial !== 'en') setLang(initial, false);   /* auto-detected: don't persist */
   }
+  /* Pass 1 — run straight away. Every section of the page above this script has
+     already been parsed, so a Turkish visitor gets Turkish without first seeing
+     English flash past. */
+  go();
+  /* Pass 2 — the helmet-game overlay and the rendered carousels are parsed/built
+     after this point, so sweep again once the document is complete. */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', go, { once: true });
   } else {
@@ -2971,7 +2980,7 @@ function showView(view) {
   document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
   document.querySelectorAll('.nav-' + view).forEach(l => l.classList.add('active'));
   initCarousels();
-  if (currentLang !== 'en') setLang(currentLang);
+  if (currentLang !== 'en') setLang(currentLang, false);
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
@@ -3262,6 +3271,8 @@ function renderAll() {
   renderUpcoming();
   renderPastEvents();
   initCarousels();
+  /* slides/members/events are built in English, so re-apply the active language */
+  if (currentLang !== 'en') setLang(currentLang, false);
 }
 renderAll();
 
@@ -4651,8 +4662,11 @@ window.HelmetGame = (function () {
   (function patchSetLang() {
     if (typeof window.setLang !== 'function') return;
     const orig = window.setLang;
-    window.setLang = function (l) {
-      orig(l);
+    /* forward every argument — setLang's 2nd one decides whether the choice is
+       written to localStorage, and swallowing it made auto-detection look like
+       a deliberate pick */
+    window.setLang = function (...args) {
+      orig.apply(this, args);
       if (state.open) applyLangToGame();
     };
   })();
